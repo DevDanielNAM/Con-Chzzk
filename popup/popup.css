@@ -1,0 +1,466 @@
+body {
+  width: 400px;
+  padding: 1px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#status-wrapper {
+  border-radius: 8px;
+  margin-bottom: 7px;
+  font-weight: bold;
+}
+
+.status-box {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+#status-login {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 5px;
+  border-radius: 8px;
+}
+
+#login-profile {
+  margin-left: 2px;
+}
+
+#login-id {
+  color: #1a237e;
+  font-weight: 900;
+  margin-left: 5px;
+  margin-right: 2px;
+}
+
+#status-logout {
+  display: flex;
+  justify-content: space-between;
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 5px 15px;
+  border-radius: 8px;
+}
+
+#login-button {
+  padding: 4px 10px;
+  border: 1px solid #c62828;
+  border-radius: 4px;
+  background-color: transparent;
+  color: #c62828;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+#settings-wrapper div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  backdrop-filter: blur(1px);
+  background-color: #ffffff5e;
+  box-shadow: 0px 0px 5px 1px #c5c5c570;
+}
+
+#control-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.control-label,
+#settings-wrapper div span {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+#control-box {
+  display: flex;
+  justify-content: space-between;
+  width: 85%;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+#settings-btn {
+  padding: 8px 0 8px 8px;
+  cursor: pointer;
+}
+
+#settings-wrapper h1 {
+  margin: 10px 0 20px;
+  font-size: 20px;
+}
+
+/* 토글 스위치 전체 스타일 */
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+/* 기본 체크박스는 숨김 */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* 토글 스위치의 배경(슬라이더) */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 22px;
+}
+
+/* 토글 스위치의 원(손잡이) */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+/* 체크됐을 때(활성화) 슬라이더 배경색 변경 */
+input:checked + .slider {
+  background-color: #9488ff;
+}
+
+/* 체크됐을 때 손잡이 위치 이동 */
+input:checked + .slider:before {
+  transform: translateX(18px);
+}
+
+#settings-wrapper {
+  display: none;
+  margin-top: 5px;
+  padding: 10px 5px 0px;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  position: absolute;
+  top: 2%;
+  background-color: #ffffff87;
+  border-radius: 12px;
+  backdrop-filter: blur(2px);
+  box-shadow: 0px 0px 14px 3px #beeefaa6;
+  width: 91%;
+  z-index: 1;
+  height: 94%;
+}
+
+#notification-center {
+  margin-top: 8px;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+.center-header {
+  height: 23px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  margin-bottom: 2px;
+}
+
+.center-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.center-header h3 > span {
+  font-size: 12px;
+  color: #949494;
+  margin-left: 3px;
+}
+
+.mark-btn-wrapper {
+  display: flex;
+  gap: 3px;
+}
+
+.mark-btn-wrapper button {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 3px 6px;
+  cursor: pointer;
+  color: #555;
+  font-family: inherit;
+  transition: all 0.3s ease-in-out;
+}
+
+.mark-btn-wrapper button:hover {
+  background-color: #f0f0f0;
+}
+
+.center-header-wrapper > .mark-btn-wrapper {
+  margin-left: 8px;
+}
+
+.mark-btn-wrapper button.active-filter {
+  background-color: #6c6c6c2b;
+  border-color: #6c6c6c8c;
+}
+
+#mark-all-delete-btn {
+  background-color: #e63d3d4f;
+  border: 1px solid #e63d3d5e;
+  transition: all 0.3s ease-in-out;
+}
+
+#mark-all-delete-btn:hover {
+  background-color: #e63d3d8f;
+  border: 1px solid #e63d3d9c;
+  color: #ffffffcc;
+}
+
+#notification-list {
+  max-height: 420px;
+  overflow-y: auto; /* 내용이 많으면 스크롤 */
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.notification-item:hover {
+  background-color: #f9f9f9;
+}
+
+.notification-item.read {
+  opacity: 0.6;
+}
+
+#notification-attach-wrapper {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+#notification-attach-wrapper img {
+  display: block;
+  margin-top: 3px;
+  max-width: 100px;
+  border-radius: 6px;
+}
+
+.channel-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 10px;
+  object-fit: cover;
+}
+
+.video-adult-mode {
+  position: relative;
+  display: inline-block;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.video-adult-mode > img {
+  display: block;
+  max-width: 250px;
+  border-radius: inherit;
+}
+
+.video-adult-mode::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+
+  background: no-repeat 50% / contain;
+  background-color: rgba(0, 0, 0, 0.2);
+  background-image: url("https://ssl.pstatic.net/static/nng/glive/resource/p/static/media/image_age_restriction_shadow.6e23574e07a43affd700.png");
+}
+
+.notification-content {
+  flex-grow: 1;
+}
+
+.time-ago {
+  margin-bottom: 4px;
+  color: #838383;
+}
+
+#live-category,
+#lounge-board {
+  border: 1px solid gray;
+  border-radius: 3px;
+  padding: 2px;
+  line-height: 25px;
+}
+
+.channel-name {
+  font-weight: bold;
+  font-size: 14px;
+  word-break: auto-phrase;
+  letter-spacing: -0.5px;
+}
+
+.notification-message {
+  font-size: 12px;
+  color: #333;
+  white-space: break-spaces;
+  word-break: auto-phrase;
+  line-height: 14px;
+}
+
+.edited-indicator {
+  color: #888;
+  font-size: 11px;
+}
+
+.mark-one-read-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #aaa;
+  padding: 5px;
+}
+
+#no-notifications {
+  text-align: center;
+  color: #999;
+  padding: 40px 0;
+}
+
+#notification-check-wrapper {
+  display: none;
+  height: 580px;
+  width: 390px;
+  position: absolute;
+  top: 10px;
+  z-index: 1;
+  background-color: #ffffff87;
+  justify-content: center;
+  backdrop-filter: blur(1px);
+}
+
+#notification-check {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 5px;
+  padding: 10px 5px 0px;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  position: absolute;
+  top: 12%;
+  background-color: #ffffff87;
+  border-radius: 12px;
+  backdrop-filter: blur(2px);
+  box-shadow: 0px 0px 14px 3px #beeefaa6;
+  width: 91%;
+  z-index: 1;
+}
+
+#notification-check .info-text {
+  margin: 8px 0;
+}
+
+#notification-check a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+#notification-check a:hover {
+  text-decoration: underline;
+}
+
+.close-btn,
+.close-settings-btn {
+  position: absolute;
+  right: 15px;
+  top: 5px;
+  color: red;
+  font-size: 15px;
+  font-weight: bold;
+  border-radius: 5px;
+  backdrop-filter: blur(1px);
+  box-shadow: 0px 0px 14px 3px #beeefaa6;
+  background-color: #ffffff66;
+  padding: 3px;
+  width: 15px;
+  height: 15px;
+  line-height: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.close-btn:hover,
+.close-settings-btn:hover {
+  background-color: #dd5e5eb5;
+  color: white;
+}
+
+#test-btn {
+  display: none;
+  position: absolute;
+  right: 20px;
+  padding: 5px;
+  border-radius: 5px;
+  background-color: #ffffffb5;
+  backdrop-filter: blur(2px);
+  box-shadow: 0px 0px 5px 3px #beeefaa6;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+#test-btn:hover {
+  background-color: #ffffff;
+}
+
+#test-notification-btn {
+  padding: 6px 12px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+  cursor: pointer;
+  width: fit-content;
+}
+
+#test-notification-btn:hover {
+  background-color: #e0e0e0;
+}

@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "콘치즈(Con:Chzzk)",
+  "version": "1.0.0",
+  "description": "치지직과 내가 이어지는 맛있는 알림! 팔로우한 스트리머의 라이브부터 다시보기, 커뮤니티 그리고 치지직 소식까지 한 번에 알려줍니다.",
+  "permissions": ["alarms", "notifications", "tabs", "storage"],
+  "host_permissions": [
+    "https://chzzk.naver.com/*",
+    "https://api.chzzk.naver.com/*",
+    "https://apis.naver.com/*",
+    "https://comm-api.game.naver.com/*",
+    "https://nng-phinf.pstatic.net/*",
+    "https://video-phinf.pstatic.net/*",
+    "https://ssl.pstatic.net/*",
+    "https://storep-phinf.pstatic.net/*",
+    "https://livecloud-thumb.akamaized.net/chzzk/kr/live-rewind-image/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chzzk.naver.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "콘치즈(Con:Chzzk)"
+  },
+  "icons": {
+    "16": "icon_16.png",
+    "48": "icon_48.png",
+    "128": "icon_128.png"
+  }
+}

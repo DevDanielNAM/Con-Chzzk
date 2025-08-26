@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" type="text/css" href="popup.css" />
+    <title>콘치즈(Con:Chzzk)</title>
+  </head>
+  <body>
+    <div id="status-wrapper">
+      <div id="status-login" class="status-box" style="display: none">
+        <img id="login-profile" />
+        <span id="login-id"></span>님은 콘치즈의 맛있는 알림과 연결 중!
+        <span id="test-btn">🔔 TEST</span>
+      </div>
+      <div id="status-logout" class="status-box" style="display: none">
+        <span>치지직 로그인이 필요해요</span>
+        <button id="login-button">로그인 페이지로</button>
+      </div>
+    </div>
+    <div id="notification-check-wrapper">
+      <div id="notification-check">
+        <span class="close-btn">x</span>
+        <p class="info-text">
+          알림이 오지 않나요?
+          <a href="#" id="settings-link">브라우저 알림 설정</a>
+          을 확인해보세요.
+        </p>
+        <button id="test-notification-btn">테스트 알림 보내기</button>
+      </div>
+    </div>
+
+    <div id="settings-wrapper">
+      <span class="close-settings-btn">x</span>
+      <h1>브라우저 알림 설정</h1>
+
+      <div id="live-control-wrapper">
+        <span class="live-control-label">라이브 알림 받기</span>
+        <label class="switch" title="라이브 알림 ON/OFF">
+          <input type="checkbox" id="live-pause-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div id="category-control-wrapper">
+        <span class="category-control-label">카테고리 변경 알림 받기</span>
+        <label class="switch" title="카테고리 변경 알림 ON/OFF">
+          <input type="checkbox" id="category-pause-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div id="live-title-control-wrapper">
+        <span class="live-title-control-label">라이브 제목 변경 알림 받기</span>
+        <label class="switch" title="라이브 제목 변경 알림 ON/OFF">
+          <input type="checkbox" id="live-title-pause-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div id="restrict-control-wrapper">
+        <span class="restrict-control-label"
+          >19세 연령 제한 설정 알림 받기</span
+        >
+        <label class="switch" title="연령 제한 알림 ON/OFF">
+          <input type="checkbox" id="restrict-pause-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div id="video-control-wrapper">
+        <span class="video-control-label">다시보기/동영상 알림 받기</span>
+        <label class="switch" title="다시보기/동영상 알림 ON/OFF">
+          <input type="checkbox" id="video-pause-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div id="community-control-wrapper">
+        <span class="community-control-label">커뮤니티 알림 받기</span>
+        <label class="switch" title="커뮤니티 알림 ON/OFF">
+          <input type="checkbox" id="community-pause-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div id="chzzk-lounge-control-wrapper">
+        <span class="chzzk-lounge-control-label">치지직 라운지 알림 받기</span>
+        <label class="switch" title="라운지 알림 ON/OFF">
+          <input type="checkbox" id="chzzk-lounge-pause-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div
+        style="
+          font-weight: bold;
+          margin-top: 18px;
+          justify-content: center;
+          background-color: #ffd7d75e;
+        "
+      >
+        치지직에서 팔로우한 스트리머의 알림 설정을 따릅니다.
+        <br />
+        각각의 알림을 OFF할 경우, 해당 "브라우저 알림"만 OFF됩니다.
+        <br />
+        '최신 알림' 목록에는 알림 메시지가 그대로 기록됩니다.
+      </div>
+    </div>
+
+    <div id="control-wrapper">
+      <div id="control-box">
+        <span class="control-label">브라우저 알림 모두 받기</span>
+        <label class="switch" title="모든 알림 ON/OFF">
+          <input type="checkbox" id="pause-toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div id="settings-btn" title="브라우저 알림 설정">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="24px"
+          viewBox="0 -960 960 960"
+          width="24px"
+          fill="#a5a8ff"
+        >
+          <path
+            d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"
+          />
+        </svg>
+      </div>
+    </div>
+
+    <div id="notification-center">
+      <div class="center-header-wrapper">
+        <div class="center-header">
+          <h3>최신 알림</h3>
+          <div class="mark-btn-wrapper">
+            <button id="mark-all-read-btn">모두 읽음</button>
+            <button id="mark-all-delete-btn">모두 삭제</button>
+          </div>
+        </div>
+        <div class="mark-btn-wrapper">
+          <button id="mark-all-btn">All</button>
+          <button id="mark-live-btn">🔴</button>
+          <button id="mark-category-live-title-btn">🔄</button>
+          <button id="mark-restrict-btn">🔞</button>
+          <button id="mark-video-btn">🎬</button>
+          <button id="mark-community-btn">💬</button>
+          <button id="mark-lounge-btn">🧀</button>
+        </div>
+      </div>
+      <div id="notification-list"></div>
+      <div id="no-notifications" style="display: none">
+        <p>표시할 알림이 없습니다.</p>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
