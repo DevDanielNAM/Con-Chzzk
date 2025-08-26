@@ -266,19 +266,18 @@ async function checkLiveStatus(
         currentLiveTtitle !== prevLiveTitle &&
         channel.personalData.following.notification
       ) {
-        notifications.push(
-          createCategoryAndLiveTitleChangeObject(
-            channel,
-            prevCategory,
-            currentCategory,
-            prevLiveTitle,
-            currentLiveTtitle
-          )
+        const notificationObject = createCategoryAndLiveTitleChangeObject(
+          channel,
+          prevCategory,
+          currentCategory,
+          prevLiveTitle,
+          currentLiveTtitle
         );
+        notifications.push(notificationObject);
 
         if (!isPaused && !isCategoryPaused && !isLiveTitlePaused) {
           createCategoryAndLiveTitleChangeNotification(
-            channel,
+            notificationObject,
             prevCategory,
             currentCategory,
             prevLiveTitle,
@@ -294,13 +293,16 @@ async function checkLiveStatus(
           currentCategory !== prevCategory &&
           channel.personalData.following.notification
         ) {
-          notifications.push(
-            createCategoryChangeObject(channel, prevCategory, currentCategory)
+          const notificationObject = createCategoryChangeObject(
+            channel,
+            prevCategory,
+            currentCategory
           );
+          notifications.push(notificationObject);
 
           if (!isPaused && !isCategoryPaused) {
             createCategoryChangeNotification(
-              channel,
+              notificationObject,
               prevCategory,
               currentCategory
             );
@@ -314,17 +316,16 @@ async function checkLiveStatus(
           currentLiveTtitle !== prevLiveTitle &&
           channel.personalData.following.notification
         ) {
-          notifications.push(
-            createLiveTitleChangeObject(
-              channel,
-              prevLiveTitle,
-              currentLiveTtitle
-            )
+          const notificationObject = createLiveTitleChangeObject(
+            channel,
+            prevLiveTitle,
+            currentLiveTtitle
           );
+          notifications.push(notificationObject);
 
           if (!isPaused && !isLiveTitlePaused) {
             createLiveTitleChangeNotification(
-              channel,
+              notificationObject,
               prevLiveTitle,
               currentLiveTtitle
             );
@@ -336,18 +337,17 @@ async function checkLiveStatus(
           currentAdultMode !== prevAdultMode &&
           channel.personalData.following.notification
         ) {
-          notifications.push(
-            createLiveAdultChangeObject(
-              channel,
-              currentAdultMode,
-              liveStatusData.content.liveTitle,
-              liveStatusData.content.liveCategoryValue
-            )
+          const notificationObject = createLiveAdultChangeObject(
+            channel,
+            currentAdultMode,
+            liveStatusData.content.liveTitle,
+            liveStatusData.content.liveCategoryValue
           );
+          notifications.push(notificationObject);
 
           if (!isPaused && !isRestrictPaused) {
             createLiveAdultChangeNotification(
-              channel,
+              notificationObject,
               currentAdultMode,
               liveStatusData.content
             );
@@ -694,11 +694,14 @@ function createLiveNotification(channel, liveInfo) {
 }
 
 // --- 카테고리 변경 알림 생성 함수 ---
-function createCategoryChangeNotification(channel, oldCategory, newCategory) {
-  const { channelId, channelName, channelImageUrl } = channel;
-  const notificationId = `category-${channelId}-${Date.now()}`;
+function createCategoryChangeNotification(
+  notificationObject,
+  oldCategory,
+  newCategory
+) {
+  const { id, channelName, channelImageUrl } = notificationObject;
 
-  chrome.notifications.create(notificationId, {
+  chrome.notifications.create(id, {
     type: "basic",
     iconUrl: channelImageUrl || "icon_128.png",
     title: `🔄 ${channelName}님의 카테고리 변경`,
@@ -708,14 +711,13 @@ function createCategoryChangeNotification(channel, oldCategory, newCategory) {
 
 // --- 라이브 제목 변경 알림 생성 함수 ---
 function createLiveTitleChangeNotification(
-  channel,
+  notificationObject,
   oldLiveTitle,
   newLiveTitle
 ) {
-  const { channelId, channelName, channelImageUrl } = channel;
-  const notificationId = `live-title-${channelId}-${Date.now()}`;
+  const { id, channelName, channelImageUrl } = notificationObject;
 
-  chrome.notifications.create(notificationId, {
+  chrome.notifications.create(id, {
     type: "basic",
     iconUrl: channelImageUrl || "icon_128.png",
     title: `🔄 ${channelName}님의 라이브 제목 변경`,
@@ -725,14 +727,13 @@ function createLiveTitleChangeNotification(
 
 // --- 카테고리/라이브 제목 변경 알림 생성 함수 ---
 function createCategoryAndLiveTitleChangeNotification(
-  channel,
+  notificationObject,
   oldCategory,
   newCategory,
   oldLiveTitle,
   newLiveTitle
 ) {
-  const { channelId, channelName, channelImageUrl } = channel;
-  const notificationId = `category-live-title-${channelId}-${Date.now()}`;
+  const { id, channelName, channelImageUrl } = notificationObject;
 
   let oldMessageContent = `[${
     (oldCategory.length > 10
@@ -758,7 +759,7 @@ function createCategoryAndLiveTitleChangeNotification(
 
   const messageContent = `${oldMessageContent} → ${newMessageContent}`;
 
-  chrome.notifications.create(notificationId, {
+  chrome.notifications.create(id, {
     type: "basic",
     iconUrl: channelImageUrl || "icon_128.png",
     title: `🔄 ${channelName}님의 카테고리&제목 변경`,
@@ -768,13 +769,12 @@ function createCategoryAndLiveTitleChangeNotification(
 
 // --- 라이브 19세 연령 제한 변경 알림 생성 함수 ---
 function createLiveAdultChangeNotification(
-  channel,
+  notificationObject,
   currentAdultMode,
   liveInfo
 ) {
-  const { channelId, channelName, channelImageUrl } = channel;
+  const { id, channelName, channelImageUrl } = notificationObject;
   const { liveTitle, liveCategoryValue } = liveInfo;
-  const notificationId = `live-adult-${channelId}-${Date.now()}`;
 
   const title = currentAdultMode
     ? `🔞 ${channelName}님의 연령 제한 설정`
@@ -783,7 +783,7 @@ function createLiveAdultChangeNotification(
     ? "19세 연령 제한 설정을 했어요"
     : "19세 연령 제한을 해제했어요";
 
-  chrome.notifications.create(notificationId, {
+  chrome.notifications.create(id, {
     type: "basic",
     iconUrl: channelImageUrl || "icon_128.png",
     title: title,
