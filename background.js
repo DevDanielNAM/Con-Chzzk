@@ -243,7 +243,7 @@ async function checkLiveStatus(
       );
       const liveStatusData = await liveStatusResponse.json();
       const currentCategory = liveStatusData.content?.liveCategoryValue;
-      const currentLiveTtitle = liveStatusData.content?.liveTitle;
+      const currentLiveTitle = liveStatusData.content?.liveTitle;
       const currentAdultMode = liveStatusData.content?.adult;
 
       const isNewLiveEvent =
@@ -262,8 +262,8 @@ async function checkLiveStatus(
         currentCategory &&
         currentCategory !== prevCategory &&
         prevLiveTitle &&
-        currentLiveTtitle &&
-        currentLiveTtitle !== prevLiveTitle &&
+        currentLiveTitle &&
+        currentLiveTitle !== prevLiveTitle &&
         channel.personalData.following.notification
       ) {
         const notificationObject = createCategoryAndLiveTitleChangeObject(
@@ -271,17 +271,17 @@ async function checkLiveStatus(
           prevCategory,
           currentCategory,
           prevLiveTitle,
-          currentLiveTtitle
+          currentLiveTitle
         );
         notifications.push(notificationObject);
 
-        if (!isPaused && !isCategoryPaused && !isLiveTitlePaused) {
+        if (!isPaused && !(isCategoryPaused || isLiveTitlePaused)) {
           createCategoryAndLiveTitleChangeNotification(
             notificationObject,
             prevCategory,
             currentCategory,
             prevLiveTitle,
-            currentLiveTtitle
+            currentLiveTitle
           );
         }
       } else {
@@ -312,14 +312,14 @@ async function checkLiveStatus(
         if (
           prevLiveTitle &&
           wasLive &&
-          currentLiveTtitle &&
-          currentLiveTtitle !== prevLiveTitle &&
+          currentLiveTitle &&
+          currentLiveTitle !== prevLiveTitle &&
           channel.personalData.following.notification
         ) {
           const notificationObject = createLiveTitleChangeObject(
             channel,
             prevLiveTitle,
-            currentLiveTtitle
+            currentLiveTitle
           );
           notifications.push(notificationObject);
 
@@ -327,7 +327,7 @@ async function checkLiveStatus(
             createLiveTitleChangeNotification(
               notificationObject,
               prevLiveTitle,
-              currentLiveTtitle
+              currentLiveTitle
             );
           }
         }
@@ -357,7 +357,7 @@ async function checkLiveStatus(
       newLiveStatus[channelId] = {
         live: true,
         category: currentCategory,
-        liveTitle: currentLiveTtitle,
+        liveTitle: currentLiveTitle,
         adultMode: currentAdultMode,
       };
     } else {
