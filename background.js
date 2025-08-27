@@ -33,6 +33,10 @@ chrome.runtime.onInstalled.addListener(async (details) => {
         "notificationHistory"
       );
       let changed = false;
+
+      // 정규표현식을 사용하여 HTML에서 카테고리와 제목을 추출
+      const categoryRegex = /<span[^>]*>([^<]+)<\/span>/;
+
       for (const item of notificationHistory) {
         if (item.type === "POST") {
           if (!item.excerpt) {
@@ -40,9 +44,106 @@ chrome.runtime.onInstalled.addListener(async (details) => {
             changed = true;
           }
           if (!item.attachLayout) {
-            item.attachLayout = "default";
+            item.attachLayout = "layout-default";
             changed = true;
           }
+        }
+
+        if (item.type === "VIDEO") {
+          if (!item.videoCategoryValue) {
+            item.videoCategoryValue = "기타";
+            changed = true;
+          }
+        }
+
+        if (item.type === "LIVE" && typeof item.liveTitle === "undefined") {
+          const content = item.content || "";
+          const categoryMatch = content.match(categoryRegex);
+
+          // 정규식으로 카테고리와 제목을 성공적으로 분리
+          if (categoryMatch) {
+            item.liveCategoryValue = categoryMatch[1];
+            // HTML 태그를 제거하여 순수 제목만 추출
+            item.liveTitle = content.replace(categoryRegex, "").trim();
+          } else {
+            // 분리 실패 시 content를 그대로 liveTitle로 사용
+            item.liveCategoryValue = "기타";
+            item.liveTitle = content;
+          }
+
+          // watchPartyTag, dropsCampaignNo 새로운 필드 초기화
+          item.watchPartyTag = null;
+          item.dropsCampaignNo = null;
+          item.paidPromotion = false;
+
+          delete item.content;
+
+          changed = true;
+        }
+
+        if (
+          item.type === "CATEGORY" &&
+          typeof item.oldCategory === "undefined"
+        ) {
+          const content = item.content || "";
+          const parts = content.split(" → ");
+          if (parts.length === 2) {
+            item.oldCategory = parts[0].replace(/<[^>]*>/g, "").trim(); // HTML 태그 제거
+            item.newCategory = parts[1].replace(/<[^>]*>/g, "").trim(); // HTML 태그 제거
+          } else {
+            item.oldCategory = "없음";
+            item.newCategory = "기타";
+          }
+
+          delete item.content;
+
+          changed = true;
+        }
+
+        if (
+          item.type === "CATEGORY/LIVETITLE" &&
+          typeof item.oldCategory === "undefined"
+        ) {
+          const content = item.content || "";
+          const parts = content.split(" → ");
+
+          if (parts.length === 2) {
+            const oldPart = parts[0];
+            const newPart = parts[1];
+
+            const oldCategoryMatch = oldPart.match(categoryRegex);
+            const newCategoryMatch = newPart.match(categoryRegex);
+
+            item.oldCategory = oldCategoryMatch ? oldCategoryMatch[1] : "없음";
+            item.oldLiveTitle = oldPart.replace(categoryRegex, "").trim();
+
+            item.newCategory = newCategoryMatch ? newCategoryMatch[1] : "기타";
+            item.newLiveTitle = newPart.replace(categoryRegex, "").trim();
+          }
+
+          delete item.content;
+
+          changed = true;
+        }
+
+        if (item.type === "ADULT" && typeof item.liveTitle === "undefined") {
+          const content = item.content || "";
+          const categoryMatch = content.match(categoryRegex);
+
+          // 정규식으로 카테고리와 제목을 성공적으로 분리
+          if (categoryMatch) {
+            item.liveCategoryValue = categoryMatch[1];
+            // HTML 태그를 제거하여 순수 제목만 추출
+            item.liveTitle = content.replace(categoryRegex, "").trim();
+          } else {
+            // 분리 실패 시 content를 그대로 liveTitle로 사용
+            item.liveCategoryValue = "기타";
+            item.liveTitle = content;
+          }
+
+          delete item.content;
+
+          changed = true;
         }
       }
 
@@ -192,6 +293,8 @@ async function checkFollowedChannels() {
       "isCategoryPaused",
       "isLiveTitlePaused",
       "isRestrictPaused",
+      "isWatchPartyPaused",
+      "isDropsPaused",
       "isVideoPaused",
       "isCommunityPaused",
       "isLoungePaused",
@@ -201,6 +304,8 @@ async function checkFollowedChannels() {
     const isCategoryPaused = prevState.isCategoryPaused || false;
     const isLiveTitlePaused = prevState.isLiveTitlePaused || false;
     const isRestrictPaused = prevState.isRestrictPaused || false;
+    const isWatchPartyPaused = prevState.isWatchPartyPaused || false;
+    const isDropsPaused = prevState.isDropsPaused || false;
     const isVideoPaused = prevState.isVideoPaused || false;
     const isCommunityPaused = prevState.isCommunityPaused || false;
     const isLoungePaused = prevState.isLoungePaused || false;
@@ -214,7 +319,9 @@ async function checkFollowedChannels() {
         isLivePaused,
         isCategoryPaused,
         isLiveTitlePaused,
-        isRestrictPaused
+        isRestrictPaused,
+        isWatchPartyPaused,
+        isDropsPaused
       ),
       checkCommunityPosts(
         followingList,
@@ -299,7 +406,9 @@ async function checkLiveStatus(
   isLivePaused,
   isCategoryPaused,
   isLiveTitlePaused,
-  isRestrictPaused
+  isRestrictPaused,
+  isWatchPartyPaused,
+  isDropsPaused
 ) {
   const newLiveStatus = {};
   const notifications = [];
@@ -311,6 +420,8 @@ async function checkLiveStatus(
     const prevCategory = prevLiveStatus[channelId]?.category || null;
     const prevLiveTitle = prevLiveStatus[channelId]?.liveTitle || null;
     const prevAdultMode = prevLiveStatus[channelId]?.adultMode || false;
+    const prevWatchParty = prevLiveStatus[channelId]?.watchParty || null;
+    const prevDrops = prevLiveStatus[channelId]?.drops || null;
     const isNowLive = streamer.openLive;
 
     if (isNowLive) {
@@ -322,6 +433,8 @@ async function checkLiveStatus(
       const currentCategory = liveStatusData.content?.liveCategoryValue;
       const currentLiveTitle = liveStatusData.content?.liveTitle;
       const currentAdultMode = liveStatusData.content?.adult;
+      const currentWatchParty = liveStatusData.content?.watchPartyTag;
+      const currentDrops = liveStatusData.content?.dropsCampaignNo;
 
       const isNewLiveEvent =
         !wasLive && channel.personalData.following.notification;
@@ -430,12 +543,52 @@ async function checkLiveStatus(
             );
           }
         }
+        // 5. 같이보기 설정 알림
+        if (
+          wasLive &&
+          currentWatchParty !== prevWatchParty &&
+          channel.personalData.following.notification
+        ) {
+          const notificationObject = createLiveWatchPartyObject(
+            channel,
+            liveStatusData.content
+          );
+          notifications.push(notificationObject);
+
+          if (!isPaused && !isWatchPartyPaused) {
+            createLiveWatchPartyNotification(
+              notificationObject,
+              liveStatusData.content
+            );
+          }
+        }
+        // 6. 드롭스 설정 변경 알림
+        if (
+          wasLive &&
+          currentDrops !== prevDrops &&
+          channel.personalData.following.notification
+        ) {
+          const notificationObject = createLiveDropsObject(
+            channel,
+            liveStatusData.content
+          );
+          notifications.push(notificationObject);
+
+          if (!isPaused && !isDropsPaused) {
+            createLiveDropsNotification(
+              notificationObject,
+              liveStatusData.content
+            );
+          }
+        }
       }
       newLiveStatus[channelId] = {
         live: true,
         category: currentCategory,
         liveTitle: currentLiveTitle,
         adultMode: currentAdultMode,
+        watchParty: currentWatchParty,
+        drops: currentDrops,
       };
     } else {
       newLiveStatus[channelId] = {
@@ -443,6 +596,8 @@ async function checkLiveStatus(
         category: null,
         liveTitle: null,
         adultMode: false,
+        watchParty: false,
+        drops: false,
       };
     }
   }
@@ -766,17 +921,26 @@ function decodeHtmlEntities(str) {
 // --- 라이브 알림 생성 함수 ---
 function createLiveNotification(channel, liveInfo) {
   const { channelId, channelName, channelImageUrl } = channel;
-  const { liveTitle, liveCategoryValue, openDate } = liveInfo;
+  const {
+    liveTitle,
+    liveCategoryValue,
+    openDate,
+    dropsCampaignNo,
+    watchPartyTag,
+  } = liveInfo;
   const notificationId = `live-${channelId}-${openDate}`;
+
+  let messageContent = `[${liveCategoryValue}]`;
+  if (watchPartyTag) messageContent += `[같이보기/${watchPartyTag}]`;
+  if (dropsCampaignNo) messageContent += "[드롭스]";
+  messageContent += ` ${decodeHtmlEntities(liveTitle)}`;
 
   // 1. 브라우저 알림 생성
   chrome.notifications.create(notificationId, {
     type: "basic",
     iconUrl: channelImageUrl || "icon_128.png",
     title: `🔴 ${channelName}님이 라이브 시작!`,
-    message: `${formatTimeAgo(
-      openDate
-    )}..\n[${liveCategoryValue}] ${liveTitle}`,
+    message: `${formatTimeAgo(openDate)}..\n${messageContent}`,
   });
 }
 
@@ -808,7 +972,9 @@ function createLiveTitleChangeNotification(
     type: "basic",
     iconUrl: channelImageUrl || "icon_128.png",
     title: `🔄 ${channelName}님의 라이브 제목 변경`,
-    message: `${oldLiveTitle || "없음"} → ${newLiveTitle}`,
+    message: `${
+      decodeHtmlEntities(oldLiveTitle) || "없음"
+    } → ${decodeHtmlEntities(newLiveTitle)}`,
   });
 }
 
@@ -836,13 +1002,13 @@ function createCategoryAndLiveTitleChangeNotification(
 
   oldMessageContent =
     oldMessageContent.length > 20
-      ? oldMessageContent.substring(0, 20) + " ..."
-      : oldMessageContent;
+      ? decodeHtmlEntities(oldMessageContent).substring(0, 20) + " ..."
+      : decodeHtmlEntities(oldMessageContent);
 
   newMessageContent =
     newMessageContent.length > 20
-      ? newMessageContent.substring(0, 20) + " ..."
-      : newMessageContent;
+      ? decodeHtmlEntities(newMessageContent).substring(0, 20) + " ..."
+      : decodeHtmlEntities(newMessageContent);
 
   const messageContent = `${oldMessageContent} → ${newMessageContent}`;
 
@@ -874,7 +1040,57 @@ function createLiveAdultChangeNotification(
     type: "basic",
     iconUrl: channelImageUrl || "icon_128.png",
     title: title,
-    message: `${channelName}님이 ${message}\n[${liveCategoryValue}] ${liveTitle}`,
+    message: `${channelName}님이 ${message}\n[${liveCategoryValue}] ${decodeHtmlEntities(
+      liveTitle
+    )}`,
+  });
+}
+
+// --- 같이보기 설정 알림 생성 함수 ---
+function createLiveWatchPartyNotification(notificationObject, liveInfo) {
+  const { id, channelName, channelImageUrl } = notificationObject;
+  const { liveTitle, liveCategoryValue, watchPartyTag } = liveInfo;
+
+  const messageTitle = dropsCampaignNo
+    ? `🍿 ${channelName}님의 같이보기 설정`
+    : `🍿 ${channelName}님의 같이보기 해제`;
+  const messageContent = dropsCampaignNo
+    ? `${channelName}님이 [${watchPartyTag}] 같이보기 설정을 했어요\n[${liveCategoryValue}] ${decodeHtmlEntities(
+        liveTitle
+      )}`
+    : `${channelName}님이 [${watchPartyTag}] 같이보기 설정을 해제했어요\n[${liveCategoryValue}] ${decodeHtmlEntities(
+        liveTitle
+      )}`;
+
+  chrome.notifications.create(id, {
+    type: "basic",
+    iconUrl: channelImageUrl || "icon_128.png",
+    title: messageTitle,
+    message: messageContent,
+  });
+}
+
+// --- 드롭스 설정 알림 생성 함수 ---
+function createLiveDropsNotification(notificationObject, liveInfo) {
+  const { id, channelName, channelImageUrl } = notificationObject;
+  const { liveTitle, liveCategoryValue, dropsCampaignNo } = liveInfo;
+
+  const messageTitle = dropsCampaignNo
+    ? `🪂 ${channelName}님의 드롭스 설정`
+    : `🪂 ${channelName}님의 드롭스 해제`;
+  const messageContent = dropsCampaignNo
+    ? `${channelName}님이 드롭스 설정을 했어요\n[${liveCategoryValue}] ${decodeHtmlEntities(
+        liveTitle
+      )}`
+    : `${channelName}님이 드롭스 설정을 해제했어요\n[${liveCategoryValue}] ${decodeHtmlEntities(
+        liveTitle
+      )}`;
+
+  chrome.notifications.create(id, {
+    type: "basic",
+    iconUrl: channelImageUrl || "icon_128.png",
+    title: messageTitle,
+    message: messageContent,
   });
 }
 
@@ -884,7 +1100,7 @@ function createPostNotification(post, channel) {
   const notificationId = `post-${channelId}-${post.commentId}`;
 
   // 1. 브라우저 알림 생성
-  let messageContent = post.content;
+  let messageContent = decodeHtmlEntities(post.content);
 
   // 메시지 길이 조절
   messageContent =
@@ -944,7 +1160,7 @@ function createVideoNotification(video) {
       ? `🎬 ${channel.channelName}님의 다시보기`
       : `🎦 ${channel.channelName}님의 새 동영상`;
 
-  let messageContent = videoTitle;
+  let messageContent = decodeHtmlEntities(videoTitle);
 
   // 메시지 길이 조절
   messageContent =
@@ -963,7 +1179,14 @@ function createVideoNotification(video) {
 // --- 라이브 객체 생성 함수 ---
 function createLiveObject(channel, liveInfo) {
   const { channelId, channelName, channelImageUrl } = channel;
-  const { liveTitle, liveCategoryValue, openDate } = liveInfo;
+  const {
+    liveTitle,
+    liveCategoryValue,
+    openDate,
+    dropsCampaignNo,
+    watchPartyTag,
+    paidPromotion,
+  } = liveInfo;
   const notificationId = `live-${channelId}-${openDate}`;
 
   // 팝업에 표시할 알림 내역 저장
@@ -973,7 +1196,11 @@ function createLiveObject(channel, liveInfo) {
     channelId,
     channelName,
     channelImageUrl: channelImageUrl || "../icon_128.png",
-    content: `<span id="live-category">${liveCategoryValue}</span> ${liveTitle}`,
+    liveTitle,
+    liveCategoryValue,
+    watchPartyTag,
+    dropsCampaignNo,
+    paidPromotion,
     timestamp: openDate,
     read: false,
   };
@@ -990,9 +1217,8 @@ function createCategoryChangeObject(channel, oldCategory, newCategory) {
     channelId,
     channelName,
     channelImageUrl,
-    content: `<span id="live-category">${
-      oldCategory || "없음"
-    }</span> → <span id="live-category">${newCategory}</span>`,
+    oldCategory,
+    newCategory,
     timestamp: new Date(Date.now()).toISOString(),
     read: false,
   };
@@ -1014,7 +1240,8 @@ function createLiveAdultChangeObject(
     channelId,
     channelName,
     channelImageUrl,
-    content: `<span id="live-category">${liveCategoryValue}</span> ${liveTitle}`,
+    liveCategoryValue,
+    liveTitle,
     adultMode: currentAdultMode,
     timestamp: new Date(Date.now()).toISOString(),
     read: false,
@@ -1055,9 +1282,50 @@ function createCategoryAndLiveTitleChangeObject(
     channelId,
     channelName,
     channelImageUrl,
-    content: `<span id="live-category">${oldCategory || "없음"}</span> ${
-      oldLiveTitle || "없음"
-    } → <span id="live-category">${newCategory}</span> ${newLiveTitle}`,
+    oldCategory,
+    oldLiveTitle,
+    newCategory,
+    newLiveTitle,
+    timestamp: new Date(Date.now()).toISOString(),
+    read: false,
+  };
+}
+
+// --- 같이보기 설정 객체 생성 함수 ---
+function createLiveWatchPartyObject(channel, liveInfo) {
+  const { channelId, channelName, channelImageUrl } = channel;
+  const { liveTitle, liveCategoryValue, watchPartyTag } = liveInfo;
+  const notificationId = `live-watch-party-${channelId}-${Date.now()}`;
+
+  return {
+    id: notificationId,
+    type: "WATCHPARTY",
+    channelId,
+    channelName,
+    channelImageUrl,
+    liveTitle,
+    liveCategoryValue,
+    watchPartyTag,
+    timestamp: new Date(Date.now()).toISOString(),
+    read: false,
+  };
+}
+
+// --- 드롭스 설정 객체 생성 함수 ---
+function createLiveDropsObject(channel, liveInfo) {
+  const { channelId, channelName, channelImageUrl } = channel;
+  const { liveTitle, liveCategoryValue, dropsCampaignNo } = liveInfo;
+  const notificationId = `live-drops-${channelId}-${Date.now()}`;
+
+  return {
+    id: notificationId,
+    type: "DROPS",
+    channelId,
+    channelName,
+    channelImageUrl,
+    liveTitle,
+    liveCategoryValue,
+    dropsCampaignNo,
     timestamp: new Date(Date.now()).toISOString(),
     read: false,
   };
@@ -1094,10 +1362,12 @@ function createPostObject(post, channel) {
         attachLayout = "layout-double-medium";
       }
     } else {
-      messageContent = normalizeBody(content).slice(0, 375) + +" ...(더보기)";
+      messageContent = normalizeBody(content);
+      messageContent =
+        messageContent.length > 375
+          ? messageContent.slice(0, 375) + " ...(더보기)"
+          : messageContent;
     }
-  } else {
-    messageContent = attachWrapper;
   }
 
   // 팝업에 표시할 알림 내역 저장
@@ -1140,7 +1410,8 @@ function createLoungeObject(post) {
     feedId,
     feedLink,
     channelImageUrl: channelImageUrl || "../icon_128.png",
-    content: `<span id="lounge-board">${boardName}</span> ${title}`,
+    boardName,
+    title,
     timestamp: timestamp,
     read: false,
   };
@@ -1153,6 +1424,7 @@ function createVideoObject(video) {
     videoNo,
     videoTitle,
     videoType,
+    videoCategoryValue,
     thumbnailImageUrl,
     publishDate,
     adult,
@@ -1165,6 +1437,7 @@ function createVideoObject(video) {
     type: "VIDEO",
     videoNo,
     videoType,
+    videoCategoryValue,
     channelName: channel.channelName,
     channelId: channel.channelId,
     channelImageUrl: channel.channelImageUrl || "../icon_128.png",

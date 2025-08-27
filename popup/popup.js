@@ -181,6 +181,8 @@ function initializeAllToggles() {
     { toggleId: "live-pause-toggle", storageKey: "isLivePaused" },
     { toggleId: "category-pause-toggle", storageKey: "isCategoryPaused" },
     { toggleId: "live-title-pause-toggle", storageKey: "isLiveTitlePaused" },
+    { toggleId: "watch-party-pause-toggle", storageKey: "isWatchPartyPaused" },
+    { toggleId: "drops-pause-toggle", storageKey: "isDropsPaused" },
     { toggleId: "restrict-pause-toggle", storageKey: "isRestrictPaused" },
     { toggleId: "video-pause-toggle", storageKey: "isVideoPaused" },
     { toggleId: "community-pause-toggle", storageKey: "isCommunityPaused" },
@@ -332,6 +334,8 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
   const markCategoryLiveTitleBtn = document.getElementById(
     "mark-category-live-title-btn"
   );
+  const markWatchPartyBtn = document.getElementById("mark-watch-party-btn");
+  const markDropsBtn = document.getElementById("mark-drops-btn");
   const markRestrictBtn = document.getElementById("mark-restrict-btn");
   const markVideoBtn = document.getElementById("mark-video-btn");
   const markCommunityBtn = document.getElementById("mark-community-btn");
@@ -394,6 +398,8 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     markAllBtn.style.display = "none";
     markLiveBtn.style.display = "none";
     markCategoryLiveTitleBtn.style.display = "none";
+    markWatchPartyBtn.style.display = "none";
+    markDropsBtn.style.display = "none";
     markRestrictBtn.style.display = "none";
     markVideoBtn.style.display = "none";
     markCommunityBtn.style.display = "none";
@@ -406,6 +412,8 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
 
     markLiveBtn.style.display = "none";
     markCategoryLiveTitleBtn.style.display = "none";
+    markWatchPartyBtn.style.display = "none";
+    markDropsBtn.style.display = "none";
     markRestrictBtn.style.display = "none";
     markVideoBtn.style.display = "none";
     markCommunityBtn.style.display = "none";
@@ -426,6 +434,14 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
         case "CATEGORY":
           markCategoryLiveTitleBtn.style.display = "block";
           markCategoryLiveTitleBtn.title = "카테고리/라이브 제목";
+          break;
+        case "WATCHPARTY":
+          markWatchPartyBtn.style.display = "block";
+          markWatchPartyBtn.title = "같이보기";
+          break;
+        case "DROPS":
+          markDropsBtn.style.display = "block";
+          markDropsBtn.title = "드롭스";
           break;
         case "ADULT":
           markRestrictBtn.style.display = "block";
@@ -489,6 +505,18 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
         .classList.add("active-filter");
       markAllDeleteBtn.innerText = "🔄 모두 삭제";
       markAllReadBtn.innerText = "🔄 모두 읽음";
+      break;
+    case "WATCHPARTY":
+      document
+        .getElementById("mark-watch-party-btn")
+        .classList.add("active-filter");
+      markAllDeleteBtn.innerText = "🍿 모두 삭제";
+      markAllReadBtn.innerText = "🍿 모두 읽음";
+      break;
+    case "DROPS":
+      document.getElementById("mark-drops-btn").classList.add("active-filter");
+      markAllDeleteBtn.innerText = "🪂 모두 삭제";
+      markAllReadBtn.innerText = "🪂 모두 읽음";
       break;
     case "ADULT":
       document
@@ -594,6 +622,16 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
 
   markCategoryLiveTitleBtn.onclick = () => {
     currentFilter = "CATEGORY/LIVETITLE";
+    renderNotificationCenter({ resetScroll: true });
+  };
+
+  markWatchPartyBtn.onclick = () => {
+    currentFilter = "WATCHPARTY";
+    renderNotificationCenter({ resetScroll: true });
+  };
+
+  markDropsBtn.onclick = () => {
+    currentFilter = "DROPS";
     renderNotificationCenter({ resetScroll: true });
   };
 
@@ -710,6 +748,15 @@ function createNotificationItem(item) {
   } else if (item.type === "CATEGORY") {
     contentType = "🔄";
     contentTitle = item.channelName + "님이 카테고리를 변경했어요";
+  } else if (item.type === "WATCHPARTY") {
+    contentType = "🍿";
+    contentTitle =
+      item.channelName +
+      `님이 같이보기를 ${item.watchParty ? "설정" : "해제"}했어요`;
+  } else if (item.type === "DROPS") {
+    contentType = "🪂";
+    contentTitle =
+      item.channelName + `님이 드롭스를 ${item.drops ? "설정" : "해제"}했어요`;
   } else if (item.type === "LOUNGE") {
     contentType = "🧀";
     contentTitle = item.channelName + "님이 새 라운지 글을 작성했어요";
@@ -724,30 +771,81 @@ function createNotificationItem(item) {
   }
 
   if (item.type === "POST") {
-    contentHTML = item.excerpt || makeExcerpt(item.content);
-
     const hasAttaches = item.attaches && item.attaches.length > 0;
     if (hasAttaches) {
+      // 마이그레이션 fallback
+      const temp = item.excerpt || makeExcerpt(item.content);
+      const hasText = temp && temp.trim().length > 0;
+      if (hasText) {
+        contentHTML = item.excerpt || makeExcerpt(item.content);
+      }
       const attachWrapper = document.createElement("div");
       attachWrapper.id = "notification-attach-wrapper";
-      attachWrapper.className = `${item.attachLayout || "default"}`;
+      attachWrapper.className = `${item.attachLayout || "layout-default"}`;
       item.attaches.forEach((attach) => {
         const img = document.createElement("img");
         img.src = attach.attachValue;
+        img.loading = "lazy";
+
+        const dimensions = JSON.parse(attach.extraJson);
+        if (dimensions && attach.attachType === "PHOTO") {
+          const ratio = dimensions.width / dimensions.height;
+          let maxWidth = 100;
+          if (item.attachLayout === "layout-single-big") {
+            maxWidth = 250;
+          } else if (item.attachLayout === "layout-double-medium") {
+            maxWidth = 155;
+          }
+          if (ratio < 0.3) {
+            img.style.aspectRatio = `${dimensions.width} / ${dimensions.height}`;
+          } else if (ratio > 1.25) {
+            img.style.height = "141px";
+          } else {
+            const height = maxWidth * ratio;
+            img.style.height = `${height}px`;
+          }
+        } else if (attach.attachType === "STICKER") {
+          img.style.width = "100px";
+          img.style.height = "100px";
+        }
         attachWrapper.appendChild(img);
       });
       contentHTML += attachWrapper.outerHTML;
     } else {
-      // --- 2. 텍스트 없이 첨부파일만 있는 경우 ---
-      const attachWrapper = document.createElement("div");
-      attachWrapper.id = "notification-attach-wrapper";
-      item.attaches.forEach((attach) => {
-        const img = document.createElement("img");
-        img.src = attach.attachValue;
-        attachWrapper.appendChild(img);
-      });
-      contentHTML += attachWrapper.outerHTML;
+      // 마이그레이션 fallback
+      contentHTML = item.excerpt || makeExcerpt(item.content);
     }
+  } else if (item.type === "LIVE") {
+    let liveContent = `<span class="live-category">${item.liveCategoryValue}</span>`;
+    if (item.watchPartyTag) {
+      liveContent += `<span class="live-watchParty">같이보기</span><span class="live-watchParty">${item.watchPartyTag}</span>`;
+    }
+    if (item.dropsCampaignNo) {
+      liveContent += `<span class="live-drops">드롭스</span>`;
+    }
+    if (item.paidPromotion) {
+      liveContent += `<span class="live-paid-promotion">유료 프로모션 포함</span>`;
+    }
+    liveContent += ` ${item.liveTitle}`;
+    contentHTML = liveContent;
+  } else if (item.type === "WATCHPARTY") {
+    contentHTML = `<span class="live-category">${item.liveCategoryValue}</span><span class="live-watchParty">같이보기</span><span class="live-watchParty">${item.watchPartyTag}</span>  ${item.liveTitle}`;
+  } else if (item.type === "DROPS") {
+    contentHTML = `<span class="live-drops">드롭스</span><span class="live-category">${item.liveCategoryValue}</span>  ${item.liveTitle}`;
+  } else if (item.type === "CATEGORY") {
+    contentHTML = `<span class="live-category">${
+      item.oldCategory || "없음"
+    }</span> → <span class="live-category">${item.newCategory}</span>`;
+  } else if (item.type === "CATEGORY/LIVETITLE") {
+    contentHTML = `<span class="live-category">${
+      item.oldCategory || "없음"
+    }</span> ${item.oldLiveTitle || "없음"} → <span class="live-category">${
+      item.newCategory
+    }</span> ${item.newLiveTitle}`;
+  } else if (item.type === "ADULT") {
+    contentHTML = `<span class="live-category">${item.liveCategoryValue}</span> ${item.liveTitle}`;
+  } else if (item.type === "LOUNGE") {
+    contentHTML = `<span class="lounge-board">${item.boardName}</span> ${item.title}`;
   } else {
     contentHTML = item.content;
   }
@@ -759,7 +857,7 @@ function createNotificationItem(item) {
       "../thumbnail.gif" ||
       item.channelImageUrl ||
       "../icon_128.png";
-    const tempContentHTML = contentHTML;
+    const tempContentHTML = `<span class="video-category">${item.videoCategoryValue}</span> ${contentHTML}`;
     if (item.adult) {
       contentHTML = `<span class="video-adult-mode"><img loading="lazy" src="${imageUrl}"></span><br> ${tempContentHTML}`;
       contentHTML += ``;

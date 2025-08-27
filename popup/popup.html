@@ -33,78 +33,97 @@
     <div id="settings-wrapper">
       <span class="close-settings-btn">x</span>
       <h1>브라우저 알림 설정</h1>
+      <div id="controls-wrapper">
+        <div id="live-control-wrapper">
+          <span class="live-control-label">라이브 알림 받기</span>
+          <label class="switch" title="라이브 알림 ON/OFF">
+            <input type="checkbox" id="live-pause-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
 
-      <div id="live-control-wrapper">
-        <span class="live-control-label">라이브 알림 받기</span>
-        <label class="switch" title="라이브 알림 ON/OFF">
-          <input type="checkbox" id="live-pause-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
+        <div id="category-control-wrapper">
+          <span class="category-control-label">카테고리 변경 알림 받기</span>
+          <label class="switch" title="카테고리 변경 알림 ON/OFF">
+            <input type="checkbox" id="category-pause-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
 
-      <div id="category-control-wrapper">
-        <span class="category-control-label">카테고리 변경 알림 받기</span>
-        <label class="switch" title="카테고리 변경 알림 ON/OFF">
-          <input type="checkbox" id="category-pause-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
+        <div id="live-title-control-wrapper">
+          <span class="live-title-control-label"
+            >라이브 제목 변경 알림 받기</span
+          >
+          <label class="switch" title="라이브 제목 변경 알림 ON/OFF">
+            <input type="checkbox" id="live-title-pause-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
 
-      <div id="live-title-control-wrapper">
-        <span class="live-title-control-label">라이브 제목 변경 알림 받기</span>
-        <label class="switch" title="라이브 제목 변경 알림 ON/OFF">
-          <input type="checkbox" id="live-title-pause-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
+        <div id="watch-party-control-wrapper">
+          <span class="watch-party-control-label">같이보기 설정 알림 받기</span>
+          <label class="switch" title="같이보기 설정 알림 ON/OFF">
+            <input type="checkbox" id="watch-party-pause-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
 
-      <div id="restrict-control-wrapper">
-        <span class="restrict-control-label"
-          >19세 연령 제한 설정 알림 받기</span
+        <div id="drops-control-wrapper">
+          <span class="drops-control-label">드롭스 설정 알림 받기</span>
+          <label class="switch" title="드롭스 설정 알림 ON/OFF">
+            <input type="checkbox" id="drops-pause-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div id="restrict-control-wrapper">
+          <span class="restrict-control-label">연령 제한 설정 알림 받기</span>
+          <label class="switch" title="연령 제한 알림 ON/OFF">
+            <input type="checkbox" id="restrict-pause-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div id="video-control-wrapper">
+          <span class="video-control-label">다시보기/동영상 알림 받기</span>
+          <label class="switch" title="다시보기/동영상 알림 ON/OFF">
+            <input type="checkbox" id="video-pause-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div id="community-control-wrapper">
+          <span class="community-control-label">커뮤니티 알림 받기</span>
+          <label class="switch" title="커뮤니티 알림 ON/OFF">
+            <input type="checkbox" id="community-pause-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div id="chzzk-lounge-control-wrapper">
+          <span class="chzzk-lounge-control-label"
+            >치지직 라운지 알림 받기</span
+          >
+          <label class="switch" title="라운지 알림 ON/OFF">
+            <input type="checkbox" id="chzzk-lounge-pause-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div
+          style="
+            font-weight: bold;
+            width: 100%;
+            justify-content: center;
+            background-color: #ffd7d75e;
+          "
         >
-        <label class="switch" title="연령 제한 알림 ON/OFF">
-          <input type="checkbox" id="restrict-pause-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div id="video-control-wrapper">
-        <span class="video-control-label">다시보기/동영상 알림 받기</span>
-        <label class="switch" title="다시보기/동영상 알림 ON/OFF">
-          <input type="checkbox" id="video-pause-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div id="community-control-wrapper">
-        <span class="community-control-label">커뮤니티 알림 받기</span>
-        <label class="switch" title="커뮤니티 알림 ON/OFF">
-          <input type="checkbox" id="community-pause-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div id="chzzk-lounge-control-wrapper">
-        <span class="chzzk-lounge-control-label">치지직 라운지 알림 받기</span>
-        <label class="switch" title="라운지 알림 ON/OFF">
-          <input type="checkbox" id="chzzk-lounge-pause-toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div
-        style="
-          font-weight: bold;
-          margin-top: 18px;
-          justify-content: center;
-          background-color: #ffd7d75e;
-        "
-      >
-        치지직에서 팔로우한 스트리머의 알림 설정을 따릅니다.
-        <br />
-        각각의 알림을 OFF할 경우, 해당 "브라우저 알림"만 OFF됩니다.
-        <br />
-        '최신 알림' 목록에는 알림 메시지가 그대로 기록됩니다.
+          치지직에서 팔로우한 스트리머의 알림 설정을 따릅니다.
+          <br />
+          각각의 알림을 OFF할 경우, 해당 "브라우저 알림"만 OFF됩니다.
+          <br />
+          '최신 알림' 목록에는 알림 메시지가 그대로 기록됩니다.
+        </div>
       </div>
     </div>
 
@@ -145,6 +164,8 @@
           <button id="mark-all-btn">All</button>
           <button id="mark-live-btn">🔴</button>
           <button id="mark-category-live-title-btn">🔄</button>
+          <button id="mark-watch-party-btn">🍿</button>
+          <button id="mark-drops-btn">🪂</button>
           <button id="mark-restrict-btn">🔞</button>
           <button id="mark-video-btn">🎬</button>
           <button id="mark-community-btn">💬</button>

@@ -61,11 +61,39 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   border-radius: 8px;
   backdrop-filter: blur(1px);
   background-color: #ffffff5e;
   box-shadow: 0px 0px 5px 1px #c5c5c570;
+}
+
+#controls-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  width: 366px;
+  height: 475px;
+}
+
+#controls-wrapper div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 156px;
+  height: 51px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  backdrop-filter: blur(1px);
+  background-color: #ffffff5e;
+  box-shadow: 0px 0px 5px 1px #c5c5c570;
+}
+
+[class*="-control-label"] {
+  width: 89px;
+  font-weight: bold;
+  font-size: 14px;
+  word-break: auto-phrase;
 }
 
 #control-wrapper {
@@ -74,8 +102,7 @@ body {
   align-items: center;
 }
 
-.control-label,
-#settings-wrapper div span {
+.control-label {
   font-weight: bold;
   font-size: 16px;
 }
@@ -95,7 +122,7 @@ body {
 }
 
 #settings-wrapper h1 {
-  margin: 10px 0 20px;
+  margin: 10px 0 12px;
   font-size: 20px;
 }
 
@@ -274,7 +301,7 @@ input:checked + .slider:before {
   margin-top: 3px;
   max-width: 250px;
   border-radius: 6px;
-  height: 141px;
+  /* height: 141px; */
   object-fit: cover;
 }
 
@@ -283,7 +310,7 @@ input:checked + .slider:before {
   margin-top: 3px;
   max-width: 155px;
   border-radius: 6px;
-  height: 141px;
+  /* height: 141px; */
   object-fit: cover;
 }
 
@@ -292,7 +319,7 @@ input:checked + .slider:before {
   margin-top: 3px;
   max-width: 100px;
   border-radius: 6px;
-  height: 141px;
+  /* height: 141px; */
   object-fit: cover;
 }
 
@@ -339,12 +366,25 @@ input:checked + .slider:before {
   color: #838383;
 }
 
-#live-category,
-#lounge-board {
+.live-category,
+.video-category,
+.lounge-board {
   border: 1px solid gray;
   border-radius: 3px;
   padding: 2px;
+  margin-right: 2px;
   line-height: 25px;
+}
+
+.live-watchParty,
+.live-drops,
+.live-paid-promotion {
+  border: 1px solid #006641;
+  border-radius: 3px;
+  padding: 2px;
+  margin-right: 2px;
+  line-height: 25px;
+  color: #009962;
 }
 
 .channel-name {
