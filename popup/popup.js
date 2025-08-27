@@ -1,3 +1,6 @@
+const HISTORY_LIMIT = 100;
+const GET_USER_STATUS_API =
+  "https://comm-api.game.naver.com/nng_main/v1/user/getUserStatus";
 let currentFilter = "ALL";
 let timeUpdaterInterval = null; // 인터벌 ID를 저장할 변수
 
@@ -52,65 +55,32 @@ window.addEventListener("unload", () => {
  * 1. 치지직 로그인 상태를 확인하고 UI를 업데이트하는 함수
  */
 async function checkLoginStatus() {
-  const loginBox = document.getElementById("status-login");
-  const logoutBox = document.getElementById("status-logout");
-  const loginIdSpan = document.getElementById("login-id");
-  const loginProfile = document.getElementById("login-profile");
-
-  const testBtn = document.getElementById("test-btn");
-  const notificationCheckWrapper = document.getElementById(
-    "notification-check-wrapper"
+  // --- 캐시된 데이터로 즉시 UI 렌더링 ---
+  const { cachedLoginStatus } = await chrome.storage.session.get(
+    "cachedLoginStatus"
   );
-
-  const controlWrapper = document.getElementById("control-wrapper");
-
-  const settingsWrapper = document.getElementById("settings-wrapper");
-
-  controlWrapper.classList.add("hidden");
-  testBtn.classList.add("hidden");
-
-  try {
-    const response = await fetch(
-      "https://comm-api.game.naver.com/nng_main/v1/user/getUserStatus"
+  if (cachedLoginStatus) {
+    updateLoginUI(
+      cachedLoginStatus.isLoggedIn,
+      cachedLoginStatus.nickname,
+      cachedLoginStatus.profileImageUrl
     );
+  }
+
+  // --- API를 호출하여 최신 정보로 다시 렌더링  ---
+  // 캐시와 실제 상태가 다를 경우를 대비한 최종 동기화
+  try {
+    const response = await fetch(GET_USER_STATUS_API);
     const data = await response.json();
-
-    if (data.code === 200 && data.content.userIdHash) {
-      // 로그인 상태
-      let userId = data.content?.nickname || "사용자";
-      if (/[ㄱ-ㅎ가-힣]/.test(userId)) {
-        userId = userId.length > 11 ? userId.substring(0, 11) + "..." : userId;
-      } else {
-        userId = userId.length > 13 ? userId.substring(0, 13) + "..." : userId;
-      }
-
-      loginIdSpan.textContent = userId;
-      loginIdSpan.title = data.content?.nickname;
-
-      loginProfile.setAttribute("src", data.content?.profileImageUrl);
-      loginProfile.style.width = "30px";
-
-      loginBox.style.display = "flex";
-      logoutBox.style.display = "none";
-
-      controlWrapper.classList.remove("hidden");
-      testBtn.classList.remove("hidden");
-      testBtn.style.display = "inline";
-    } else {
-      // 로그아웃 상태 (401 등)
-      logoutBox.style.display = "flex";
-      loginBox.style.display = "none";
-      controlWrapper.classList.add("hidden");
-      testBtn.classList.add("hidden");
-    }
+    const isLoggedIn = data.code === 200 && data.content?.userIdHash;
+    updateLoginUI(
+      isLoggedIn,
+      data.content?.nickname,
+      data.content?.profileImageUrl
+    );
   } catch (error) {
-    // 네트워크 오류 등
-    logoutBox.textContent =
-      "상태를 확인할 수 없습니다. 인터넷 연결을 확인해주세요.";
-    logoutBox.style.display = "flex";
-    loginBox.style.display = "none";
-    controlWrapper.classList.add("hidden");
-    testBtn.classList.add("hidden");
+    // 네트워크 오류 시 로그아웃 상태로 표시
+    updateLoginUI(false);
   }
 
   // 로그인 버튼 이벤트
@@ -123,6 +93,12 @@ async function checkLoginStatus() {
     });
   }
 
+  const notificationCheckWrapper = document.getElementById(
+    "notification-check-wrapper"
+  );
+  const settingsWrapper = document.getElementById("settings-wrapper");
+
+  const testBtn = document.getElementById("test-btn");
   if (testBtn) {
     testBtn.addEventListener("click", () => {
       notificationCheckWrapper.style.display = "flex";
@@ -148,6 +124,52 @@ async function checkLoginStatus() {
     closeSettingsBtn.addEventListener("click", () => {
       settingsWrapper.style.display = "none";
     });
+  }
+}
+
+/**
+ * 로그인 UI를 업데이트하는 재사용 가능한 함수
+ */
+function updateLoginUI(isLoggedIn, nickname = "사용자", profileImageUrl = "") {
+  const loginBox = document.getElementById("status-login");
+  const logoutBox = document.getElementById("status-logout");
+  const loginIdSpan = document.getElementById("login-id");
+  const loginProfile = document.getElementById("login-profile");
+
+  const testBtn = document.getElementById("test-btn");
+
+  const controlWrapper = document.getElementById("control-wrapper");
+
+  controlWrapper.classList.add("hidden");
+  testBtn.classList.add("hidden");
+
+  if (isLoggedIn) {
+    // 로그인 상태
+    let userId = nickname || "사용자";
+    if (/[ㄱ-ㅎ가-힣]/.test(userId)) {
+      userId = userId.length > 11 ? userId.substring(0, 11) + "..." : userId;
+    } else {
+      userId = userId.length > 13 ? userId.substring(0, 13) + "..." : userId;
+    }
+
+    loginIdSpan.textContent = userId;
+    loginIdSpan.title = nickname;
+
+    loginProfile.setAttribute("src", profileImageUrl);
+    loginProfile.style.width = "30px";
+
+    loginBox.style.display = "flex";
+    logoutBox.style.display = "none";
+
+    controlWrapper.classList.remove("hidden");
+    testBtn.classList.remove("hidden");
+    testBtn.style.display = "inline";
+  } else {
+    // 로그아웃 상태 (401 등)
+    logoutBox.style.display = "flex";
+    loginBox.style.display = "none";
+    controlWrapper.classList.add("hidden");
+    testBtn.classList.add("hidden");
   }
 }
 
@@ -319,7 +341,6 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
   const markAllDeleteBtn = document.getElementById("mark-all-delete-btn");
 
   const centerHeader = document.querySelector(".center-header h3");
-  const HISTORY_LIMIT = 50;
 
   // 1. 스토리지에서 알림 내역 가져오기
   const data = await chrome.storage.local.get("notificationHistory");
@@ -626,21 +647,18 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
   };
 }
 
-// 문단 개수 세기
-function countParagraphs(text) {
-  if (!text) return 0;
-
-  const norm = String(text)
-    .replace(/\r\n?/g, "\n") // 개행 통일
-    .replace(/^[ \t]+$/gm, "") // 공백만 있는 라인 → 빈 라인
-    .trim();
-
-  // 1개 이상의 빈 줄(공백 포함) 시퀀스를 문단 구분자로 간주
-  const paragraphs = norm
-    .split(/\n[ \t]*\n(?:[ \t]*\n)*/)
-    .filter((p) => p.trim() !== "");
-
-  return paragraphs.length;
+// --- 본문 정규화/자르기 헬퍼 함수 ---
+function normalizeBody(text) {
+  return text.replace(/\r\n?/g, "\n").replace(/(?:\n[ \t]*){3,}/g, "\n\n");
+}
+function makeExcerpt(text) {
+  const collapsed = normalizeBody(text || "");
+  const paraCount = (collapsed.match(/\n\n/g) || []).length + 1;
+  const max =
+    paraCount > 7 ? 240 : paraCount > 6 ? 260 : paraCount > 5 ? 280 : 375;
+  return collapsed.length > max
+    ? collapsed.slice(0, max).replace(/\s+\S*$/, "") + " ...(더보기)"
+    : collapsed;
 }
 
 /**
@@ -665,10 +683,6 @@ function createNotificationItem(item) {
   }
 
   let contentHTML = "";
-  const hasText = item.content && item.content.trim().length > 0;
-  const hasAttaches = item.attaches && item.attaches.length > 0;
-  const hasVideo = item.type === "VIDEO";
-  const isVideoAdult = item.adult;
 
   let contentType = "";
   let contentTitle = "";
@@ -709,59 +723,22 @@ function createNotificationItem(item) {
       `님이 19세 연령 제한을 ${item.adultMode ? "설정" : "해제"}했어요`;
   }
 
-  // VIDEO 타입일 경우, 썸네일이 있으면 사용하고 없으면 채널 프로필 이미지 사용
-  const imageUrl =
-    item.type === "VIDEO"
-      ? item.thumbnailImageUrl || item.channelImageUrl
-      : item.channelImageUrl;
+  if (item.type === "POST") {
+    contentHTML = item.excerpt || makeExcerpt(item.content);
 
-  // --- 1. 텍스트가 있는 경우 ---
-  if (hasText) {
-    // --- CATEGORY/LIVETITLE 타입인 경우  ---
-    if (item.type === "CATEGORY/LIVETITLE") {
-      const temp = item.content.split(" → ");
-      let [oldMessageContent, newMessageContent] = temp;
-
-      oldMessageContent =
-        oldMessageContent.length > 170
-          ? oldMessageContent.substring(0, 170) + " ..."
-          : oldMessageContent;
-
-      newMessageContent =
-        newMessageContent.length > 170
-          ? newMessageContent.substring(0, 170) + " ...(더보기)"
-          : newMessageContent;
-
-      contentHTML = `${oldMessageContent} → ${newMessageContent}`;
-    } else {
-      const collapsed = item.content
-        .replace(/\r\n?/g, "\n")
-        .replace(/(?:\n[ \t]*){3,}/g, "\n\n");
-
-      contentHTML =
-        collapsed.length > 375
-          ? collapsed.substring(0, 375) + " ...(더보기)"
-          : collapsed;
-    }
-
+    const hasAttaches = item.attaches && item.attaches.length > 0;
     if (hasAttaches) {
-      const collapsed = item.content
-        .replace(/\r\n?/g, "\n")
-        .replace(/(?:\n[ \t]*){3,}/g, "\n\n");
-
-      const p = countParagraphs(collapsed);
-      let limit = 375;
-
-      if (p > 7) limit = 240;
-      else if (p > 6) limit = 260;
-      else if (p > 5) limit = 280;
-
-      const text =
-        collapsed.length > limit
-          ? collapsed.slice(0, limit) + " ...(더보기)"
-          : collapsed;
-      contentHTML = text;
-
+      const attachWrapper = document.createElement("div");
+      attachWrapper.id = "notification-attach-wrapper";
+      attachWrapper.className = `${item.attachLayout || "default"}`;
+      item.attaches.forEach((attach) => {
+        const img = document.createElement("img");
+        img.src = attach.attachValue;
+        attachWrapper.appendChild(img);
+      });
+      contentHTML += attachWrapper.outerHTML;
+    } else {
+      // --- 2. 텍스트 없이 첨부파일만 있는 경우 ---
       const attachWrapper = document.createElement("div");
       attachWrapper.id = "notification-attach-wrapper";
       item.attaches.forEach((attach) => {
@@ -771,32 +748,30 @@ function createNotificationItem(item) {
       });
       contentHTML += attachWrapper.outerHTML;
     }
+  } else {
+    contentHTML = item.content;
+  }
 
-    if (hasVideo) {
-      const tempContentHTML = contentHTML;
-      if (isVideoAdult) {
-        contentHTML = `<span class="video-adult-mode"><img src="${imageUrl}"></span><br> ${tempContentHTML}`;
-        contentHTML += ``;
-      } else {
-        contentHTML = `<img src="${imageUrl}" style="max-width: 250px; margin-bottom: 3px; border-radius: 6px;"><br> ${tempContentHTML}`;
-      }
+  if (item.type === "VIDEO") {
+    // 썸네일이 있으면 사용하고 없으면 채널 프로필 이미지 사용
+    const imageUrl =
+      item.thumbnailImageUrl ||
+      "../thumbnail.gif" ||
+      item.channelImageUrl ||
+      "../icon_128.png";
+    const tempContentHTML = contentHTML;
+    if (item.adult) {
+      contentHTML = `<span class="video-adult-mode"><img loading="lazy" src="${imageUrl}"></span><br> ${tempContentHTML}`;
+      contentHTML += ``;
+    } else {
+      contentHTML = `<img loading="lazy" src="${imageUrl}" style="width: 250px; height:141px; margin-bottom: 3px; border-radius: 6px;"><br> ${tempContentHTML}`;
     }
-  } else if (hasAttaches) {
-    // --- 2. 텍스트 없이 첨부파일만 있는 경우 ---
-    const attachWrapper = document.createElement("div");
-    attachWrapper.id = "notification-attach-wrapper";
-    item.attaches.forEach((attach) => {
-      const img = document.createElement("img");
-      img.src = attach.attachValue;
-      attachWrapper.appendChild(img);
-    });
-    contentHTML += attachWrapper.outerHTML;
   }
 
   const timeAgo = formatTimeAgo(item.timestamp);
 
   div.innerHTML = `
-    <img src="${item.channelImageUrl}" alt="${item.channelName}" class="channel-img">
+    <img loading="lazy" src="${item.channelImageUrl}" alt="${item.channelName}" class="channel-img">
     <div class="notification-content">
       <div class="channel-name">${contentType} ${contentTitle}</div>
       <div class="time-ago" data-timestamp="${item.timestamp}">${timeAgo}</div>

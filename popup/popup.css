@@ -269,11 +269,31 @@ input:checked + .slider:before {
   flex-wrap: wrap;
 }
 
-#notification-attach-wrapper img {
+.layout-single-big img {
+  display: block;
+  margin-top: 3px;
+  max-width: 250px;
+  border-radius: 6px;
+  height: 141px;
+  object-fit: cover;
+}
+
+.layout-double-medium img {
+  display: block;
+  margin-top: 3px;
+  max-width: 155px;
+  border-radius: 6px;
+  height: 141px;
+  object-fit: cover;
+}
+
+.layout-default img {
   display: block;
   margin-top: 3px;
   max-width: 100px;
   border-radius: 6px;
+  height: 141px;
+  object-fit: cover;
 }
 
 .channel-img {

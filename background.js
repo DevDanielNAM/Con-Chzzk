@@ -14,42 +14,70 @@ const CHECK_ALARM_NAME = "chzzkAllCheck";
 
 // *** 실행 잠금을 위한 전역 변수 ***
 let isChecking = false;
-const HISTORY_LIMIT = 50;
+const HISTORY_LIMIT = 100;
 
 // --- 확장 프로그램 설치 시 알람 생성 ---
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   chrome.alarms.create(CHECK_ALARM_NAME, {
     periodInMinutes: 1,
     when: Date.now() + 1000,
   });
 
+  // --- 마이그레이션 로직 ---
+  // 설치 또는 업데이트 시에만 실행
+  if (details.reason === "install" || details.reason === "update") {
+    const { migrated_v2 } = await chrome.storage.local.get("migrated_v2");
+    if (!migrated_v2) {
+      // 마이그레이션이 아직 실행되지 않았다면
+      const { notificationHistory = [] } = await chrome.storage.local.get(
+        "notificationHistory"
+      );
+      let changed = false;
+      for (const item of notificationHistory) {
+        if (item.type === "POST") {
+          if (!item.excerpt) {
+            item.excerpt = makeExcerpt(item.content || "");
+            changed = true;
+          }
+          if (!item.attachLayout) {
+            item.attachLayout = "default";
+            changed = true;
+          }
+        }
+      }
+
+      const dataToSave = { migrated_v2: true };
+      if (changed) {
+        dataToSave.notificationHistory = notificationHistory;
+      }
+      await chrome.storage.local.set(dataToSave);
+    }
+  }
+
   // '업데이트' 시에만 실행되는 로직
   if (details.reason === "update") {
     updateUnreadCountBadge();
 
-    // 비동기 작업을 위한 즉시 실행 함수
-    (async () => {
+    try {
       const targetUrl = "https://chzzk.naver.com/*";
-      try {
-        const tabs = await chrome.tabs.query({ url: targetUrl });
+      const tabs = await chrome.tabs.query({ url: targetUrl });
 
-        for (const tab of tabs) {
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: () => {
-              const STORAGE_KEY = "chzzkExt_loginMonitorId";
-              const intervalId = sessionStorage.getItem(STORAGE_KEY);
-              if (intervalId) {
-                clearInterval(Number(intervalId));
-                sessionStorage.removeItem(STORAGE_KEY);
-              }
-            },
-          });
-        }
-      } catch (error) {
-        console.warn("이전 타이머 정리 중 오류 발생:", error.message);
+      for (const tab of tabs) {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          function: () => {
+            const STORAGE_KEY = "chzzkExt_loginMonitorId";
+            const intervalId = sessionStorage.getItem(STORAGE_KEY);
+            if (intervalId) {
+              clearInterval(Number(intervalId));
+              sessionStorage.removeItem(STORAGE_KEY);
+            }
+          },
+        });
       }
-    })();
+    } catch (error) {
+      console.warn("이전 타이머 정리 중 오류 발생:", error.message);
+    }
   }
 });
 
@@ -70,6 +98,37 @@ async function updateUnreadCountBadge() {
   }
 }
 
+// --- 본문 정규화/자르기 헬퍼 함수 ---
+function normalizeBody(text) {
+  return text.replace(/\r\n?/g, "\n").replace(/(?:\n[ \t]*){3,}/g, "\n\n");
+}
+function makeExcerpt(text) {
+  const collapsed = normalizeBody(text || "");
+  const paraCount = (collapsed.match(/\n\n/g) || []).length + 1;
+  const max =
+    paraCount > 7 ? 240 : paraCount > 6 ? 260 : paraCount > 5 ? 280 : 375;
+  return collapsed.length > max
+    ? collapsed.slice(0, max).replace(/\s+\S*$/, "") + " ...(더보기)"
+    : collapsed;
+}
+
+// 문단 개수 세기
+function countParagraphs(text) {
+  if (!text) return 0;
+
+  const norm = String(text)
+    .replace(/\r\n?/g, "\n") // 개행 통일
+    .replace(/^[ \t]+$/gm, "") // 공백만 있는 라인 → 빈 라인
+    .trim();
+
+  // 1개 이상의 빈 줄(공백 포함) 시퀀스를 문단 구분자로 간주
+  const paragraphs = norm
+    .split(/\n[ \t]*\n(?:[ \t]*\n)*/)
+    .filter((p) => p.trim() !== "");
+
+  return paragraphs.length;
+}
+
 // --- 알람 리스너 ---
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === CHECK_ALARM_NAME) {
@@ -85,16 +144,32 @@ async function checkFollowedChannels() {
   try {
     const response = await fetch(FOLLOW_API_URL);
     const data = await response.json();
-    if (data.code !== 200) {
-      if (data.code === 401) {
-        chrome.action.setIcon({ path: "icon_disabled.png" });
-        chrome.action.setBadgeText({ text: "X" });
-        chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
-      }
+
+    // *** 확인된 로그인 상태를 session 스토리지에 캐싱 ***
+    if (data.code === 200) {
+      const userStatusRes = await fetch(
+        "https://comm-api.game.naver.com/nng_main/v1/user/getUserStatus"
+      );
+      const userStatusData = await userStatusRes.json();
+      const nickname = userStatusData.content?.nickname;
+      const profileImageUrl = userStatusData.content?.profileImageUrl;
+
+      chrome.storage.session.set({
+        cachedLoginStatus: { isLoggedIn: true, nickname, profileImageUrl },
+      });
+      chrome.action.setIcon({ path: "icon_128.png" });
+      updateUnreadCountBadge();
+    } else {
+      chrome.storage.session.set({
+        cachedLoginStatus: { isLoggedIn: false },
+      });
+      chrome.action.setIcon({ path: "icon_disabled.png" });
+      chrome.action.setBadgeText({ text: "X" });
+      chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
+
+      isChecking = false; // 로그아웃 상태이므로 여기서 함수 종료
       return;
     }
-
-    chrome.action.setIcon({ path: "icon_128.png" });
 
     const followingList = data.content?.followingList || [];
     if (followingList.length === 0) return;
@@ -208,6 +283,8 @@ async function checkFollowedChannels() {
     }
   } catch (error) {
     console.error("팔로우 채널 확인 중 오류 발생:", error);
+    // 오류 발생 시에도 로그아웃 상태로 캐싱
+    chrome.storage.session.set({ cachedLoginStatus: { isLoggedIn: false } });
   } finally {
     isChecking = false;
   }
@@ -537,7 +614,7 @@ async function checkUploadedVideos(
 
     if (data.code === 200 && data.content?.data) {
       for (const video of data.content.data) {
-        const { channel, videoNo, thumbnailImageUrl } = video;
+        const { channel, videoNo, videoTitle, thumbnailImageUrl } = video;
         const lastSeenVideoNo = prevVideoStatus[channel.channelId] || 0;
 
         // --- 1. 새로운 동영상 확인 ---
@@ -559,13 +636,23 @@ async function checkUploadedVideos(
         const historyItem = updatedHistory.find(
           (item) => item.type === "VIDEO" && item.videoNo === videoNo
         );
-        if (
-          historyItem &&
-          thumbnailImageUrl &&
-          historyItem.thumbnailImageUrl !== thumbnailImageUrl
-        ) {
-          historyItem.thumbnailImageUrl = thumbnailImageUrl;
-          historyWasUpdated = true;
+
+        // historyItem이 존재할 때만 아래 로직을 실행
+        if (historyItem) {
+          // 1. 썸네일 변경 확인
+          if (
+            thumbnailImageUrl &&
+            historyItem.thumbnailImageUrl !== thumbnailImageUrl
+          ) {
+            historyItem.thumbnailImageUrl = thumbnailImageUrl;
+            historyWasUpdated = true;
+          }
+
+          // 2. 동영상 제목 변경 확인
+          if (videoTitle && historyItem.content !== videoTitle) {
+            historyItem.content = videoTitle;
+            historyWasUpdated = true;
+          }
         }
       }
     }
@@ -978,8 +1065,40 @@ function createCategoryAndLiveTitleChangeObject(
 
 // *** 새 글 객체 생성 함수 ***
 function createPostObject(post, channel) {
+  const { content, attaches } = post;
   const { channelId, channelName, channelImageUrl } = channel;
   const notificationId = `post-${channelId}-${post.commentId}`;
+
+  const hasText = content && content.trim().length > 0;
+  const hasAttaches = attaches && attaches.length > 0;
+
+  let messageContent = "";
+  let attachLayout = "layout-default";
+
+  if (hasText) {
+    if (hasAttaches) {
+      messageContent = makeExcerpt(content);
+
+      if (
+        attaches.length === 1 &&
+        messageContent.length < 250 &&
+        countParagraphs(messageContent) < 7
+      ) {
+        attachLayout = "layout-single-big";
+      }
+      if (
+        attaches.length === 2 &&
+        messageContent.length < 250 &&
+        countParagraphs(messageContent) < 7
+      ) {
+        attachLayout = "layout-double-medium";
+      }
+    } else {
+      messageContent = normalizeBody(content).slice(0, 375) + +" ...(더보기)";
+    }
+  } else {
+    messageContent = attachWrapper;
+  }
 
   // 팝업에 표시할 알림 내역 저장
   return {
@@ -989,8 +1108,10 @@ function createPostObject(post, channel) {
     channelName,
     channelImageUrl: channelImageUrl || "../icon_128.png",
     commentId: post.commentId,
-    content: post.content,
-    attaches: post.attaches,
+    content,
+    excerpt: messageContent,
+    attaches,
+    attachLayout,
     timestamp: post.createdDate,
     read: false,
   };
