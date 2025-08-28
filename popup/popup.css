@@ -290,7 +290,7 @@ input:checked + .slider:before {
   opacity: 0.6;
 }
 
-#notification-attach-wrapper {
+.notification-attach-wrapper {
   display: flex;
   gap: 5px;
   flex-wrap: wrap;
@@ -397,7 +397,6 @@ input:checked + .slider:before {
 .notification-message {
   font-size: 12px;
   color: #333;
-  white-space: break-spaces;
   word-break: auto-phrase;
   line-height: 14px;
 }
@@ -407,7 +406,7 @@ input:checked + .slider:before {
   font-size: 11px;
 }
 
-.mark-one-read-btn {
+.mark-one-delete-btn {
   background: none;
   border: none;
   font-size: 16px;

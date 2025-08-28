@@ -664,7 +664,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     const itemId = itemElement.dataset.id;
 
     // 개별 버튼 클릭 시
-    if (target.classList.contains("mark-one-read-btn")) {
+    if (target.classList.contains("mark-one-delete-btn")) {
       const updatedHistory = history.filter((item) => item.id !== itemId);
       await chrome.storage.local.set({ notificationHistory: updatedHistory });
       renderNotificationCenter();
@@ -720,11 +720,34 @@ function createNotificationItem(item) {
     div.dataset.videoNo = item.videoNo;
   }
 
-  let contentHTML = "";
+  const channelImg = document.createElement("img");
+  channelImg.className = "channel-img";
+  channelImg.src = item.channelImageUrl;
+  channelImg.alt = item.channelName;
+  channelImg.loading = "lazy";
+
+  const contentDiv = document.createElement("div");
+  contentDiv.className = "notification-content";
+
+  const nameDiv = document.createElement("div");
+  nameDiv.className = "channel-name";
+
+  const timeDiv = document.createElement("div");
+  timeDiv.className = "time-ago";
+  timeDiv.dataset.timestamp = item.timestamp;
+
+  const messageDiv = document.createElement("div");
+  messageDiv.className = "notification-message";
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "mark-one-delete-btn";
+  deleteBtn.title = "삭제";
+  deleteBtn.textContent = "×";
 
   let contentType = "";
   let contentTitle = "";
 
+  // 알림 메시지 타입, 제목 설정
   if (item.type === "LIVE") {
     contentType = "🔴";
     contentTitle = item.channelName + "님이 라이브를 시작했어요";
@@ -770,18 +793,25 @@ function createNotificationItem(item) {
       `님이 19세 연령 제한을 ${item.adultMode ? "설정" : "해제"}했어요`;
   }
 
+  nameDiv.innerHTML = `${contentType} ${contentTitle}`;
+
+  // 타입별 알림 메시지 본문 작성
   if (item.type === "POST") {
+    messageDiv.style.whiteSpace = "break-spaces";
     const hasAttaches = item.attaches && item.attaches.length > 0;
     if (hasAttaches) {
       // 마이그레이션 fallback
       const temp = item.excerpt || makeExcerpt(item.content);
       const hasText = temp && temp.trim().length > 0;
       if (hasText) {
-        contentHTML = item.excerpt || makeExcerpt(item.content);
+        const content = document.createTextNode(
+          item.excerpt || makeExcerpt(item.content)
+        );
+        messageDiv.append(content);
       }
       const attachWrapper = document.createElement("div");
-      attachWrapper.id = "notification-attach-wrapper";
-      attachWrapper.className = `${item.attachLayout || "layout-default"}`;
+      attachWrapper.className = "notification-attach-wrapper";
+      attachWrapper.classList.add(`${item.attachLayout || "layout-default"}`);
       item.attaches.forEach((attach) => {
         const img = document.createElement("img");
         img.src = attach.attachValue;
@@ -810,44 +840,133 @@ function createNotificationItem(item) {
         }
         attachWrapper.appendChild(img);
       });
-      contentHTML += attachWrapper.outerHTML;
+      messageDiv.append(attachWrapper);
     } else {
       // 마이그레이션 fallback
-      contentHTML = item.excerpt || makeExcerpt(item.content);
+      const content = document.createTextNode(
+        item.excerpt || makeExcerpt(item.content)
+      );
+      messageDiv.append(content);
     }
   } else if (item.type === "LIVE") {
-    let liveContent = `<span class="live-category">${item.liveCategoryValue}</span>`;
+    const span = document.createElement("span");
+    span.className = "live-category";
+    span.textContent = item.liveCategoryValue;
+
+    messageDiv.append(span);
+
     if (item.watchPartyTag) {
-      liveContent += `<span class="live-watchParty">같이보기</span><span class="live-watchParty">${item.watchPartyTag}</span>`;
+      const span = document.createElement("span");
+      span.className = "live-watchParty";
+      span.textContent = "같이보기";
+
+      const watchPartySapn = document.createElement("span");
+      watchPartySapn.className = "live-watchParty";
+      watchPartySapn.textContent = item.watchPartyTag;
+
+      messageDiv.append(span, watchPartySapn);
     }
+
     if (item.dropsCampaignNo) {
-      liveContent += `<span class="live-drops">드롭스</span>`;
+      const span = document.createElement("span");
+      span.className = "live-drops";
+      span.textContent = "드롭스";
+
+      messageDiv.append(span);
     }
+
     if (item.paidPromotion) {
-      liveContent += `<span class="live-paid-promotion">유료 프로모션 포함</span>`;
+      const span = document.createElement("span");
+      span.className = "live-paid-promotion";
+      span.textContent = "유료 프로모션 포함";
+
+      messageDiv.append(span);
     }
-    liveContent += ` ${item.liveTitle}`;
-    contentHTML = liveContent;
+    const liveTitle = document.createTextNode(` ${item.liveTitle}`);
+    messageDiv.append(liveTitle);
   } else if (item.type === "WATCHPARTY") {
-    contentHTML = `<span class="live-category">${item.liveCategoryValue}</span><span class="live-watchParty">같이보기</span><span class="live-watchParty">${item.watchPartyTag}</span>  ${item.liveTitle}`;
+    const span = document.createElement("span");
+    span.className = "live-category";
+    span.textContent = item.liveCategoryValue;
+
+    const watchPartySpan = document.createElement("span");
+    watchPartySpan.className = "live-watchParty";
+    watchPartySpan.textContent = "같이보기";
+
+    const watchPartyTagSpan = document.createElement("span");
+    watchPartyTagSpan.className = "live-watchParty";
+    watchPartyTagSpan.textContent = item.watchPartyTag;
+
+    const liveTitle = document.createTextNode(` ${item.liveTitle}`);
+
+    messageDiv.append(span, watchPartySpan, watchPartyTagSpan, liveTitle);
   } else if (item.type === "DROPS") {
-    contentHTML = `<span class="live-drops">드롭스</span><span class="live-category">${item.liveCategoryValue}</span>  ${item.liveTitle}`;
+    const span = document.createElement("span");
+    span.className = "live-category";
+    span.textContent = item.liveCategoryValue;
+
+    const dropsSpan = document.createElement("span");
+    dropsSpan.className = "live-drops";
+    dropsSpan.textContent = "드롭스";
+
+    const liveTitle = document.createTextNode(` ${item.liveTitle}`);
+
+    messageDiv.append(dropsSpan, span, liveTitle);
   } else if (item.type === "CATEGORY") {
-    contentHTML = `<span class="live-category">${
-      item.oldCategory || "없음"
-    }</span> → <span class="live-category">${item.newCategory}</span>`;
+    const oldCategorySpan = document.createElement("span");
+    oldCategorySpan.className = "live-category";
+    oldCategorySpan.textContent = `${item.oldCategory || "없음"}`;
+
+    const arrowChar = document.createTextNode(" → ");
+
+    const newCategorySpan = document.createElement("span");
+    newCategorySpan.className = "live-category";
+    newCategorySpan.textContent = item.newCategory;
+
+    messageDiv.append(oldCategorySpan, arrowChar, newCategorySpan);
   } else if (item.type === "CATEGORY/LIVETITLE") {
-    contentHTML = `<span class="live-category">${
-      item.oldCategory || "없음"
-    }</span> ${item.oldLiveTitle || "없음"} → <span class="live-category">${
-      item.newCategory
-    }</span> ${item.newLiveTitle}`;
+    const oldCategorySpan = document.createElement("span");
+    oldCategorySpan.className = "live-category";
+    oldCategorySpan.textContent = `${item.oldCategory || "없음"}`;
+
+    const oldLiveTitle = document.createTextNode(
+      ` ${item.oldLiveTitle || "없음"}`
+    );
+
+    const arrowChar = document.createTextNode(" → ");
+
+    const newCategorySpan = document.createElement("span");
+    newCategorySpan.className = "live-category";
+    newCategorySpan.textContent = item.newCategory;
+
+    const newLiveTitle = document.createTextNode(` ${item.newLiveTitle}`);
+
+    messageDiv.append(
+      oldCategorySpan,
+      oldLiveTitle,
+      arrowChar,
+      newCategorySpan,
+      newLiveTitle
+    );
   } else if (item.type === "ADULT") {
-    contentHTML = `<span class="live-category">${item.liveCategoryValue}</span> ${item.liveTitle}`;
+    const categorySpan = document.createElement("span");
+    categorySpan.className = "live-category";
+    categorySpan.textContent = item.liveCategoryValue;
+
+    const liveTitle = document.createTextNode(` ${item.liveTitle}`);
+
+    messageDiv.append(categorySpan, liveTitle);
   } else if (item.type === "LOUNGE") {
-    contentHTML = `<span class="lounge-board">${item.boardName}</span> ${item.title}`;
+    const span = document.createElement("span");
+    span.className = "ounge-board";
+    span.textContent = item.boardName;
+
+    const liveTitle = document.createTextNode(` ${item.title}`);
+
+    messageDiv.append(span, liveTitle);
   } else {
-    contentHTML = item.content;
+    const content = document.createTextNode(item.content);
+    messageDiv.append(content);
   }
 
   if (item.type === "VIDEO") {
@@ -857,25 +976,48 @@ function createNotificationItem(item) {
       "../thumbnail.gif" ||
       item.channelImageUrl ||
       "../icon_128.png";
-    const tempContentHTML = `<span class="video-category">${item.videoCategoryValue}</span> ${contentHTML}`;
+    const videoCategorySpan = document.createElement("span");
+    videoCategorySpan.className = "video-category";
+    videoCategorySpan.textContent = item.videoCategoryValue;
+
+    messageDiv.textContent = "";
+    const content = document.createTextNode(` ${item.content}`);
+
     if (item.adult) {
-      contentHTML = `<span class="video-adult-mode"><img loading="lazy" src="${imageUrl}"></span><br> ${tempContentHTML}`;
-      contentHTML += ``;
+      const span = document.createElement("span");
+      span.className = "video-adult-mode";
+
+      const img = document.createElement("img");
+      img.src = imageUrl;
+      img.loading = "lazy";
+
+      const br = document.createElement("br");
+
+      span.append(img);
+
+      messageDiv.append(span, br, videoCategorySpan, content);
     } else {
-      contentHTML = `<img loading="lazy" src="${imageUrl}" style="width: 250px; height:141px; margin-bottom: 3px; border-radius: 6px;"><br> ${tempContentHTML}`;
+      const img = document.createElement("img");
+      img.src = imageUrl;
+      img.style.width = "250px";
+      img.style.height = "141px";
+      img.style.marginBottom = "3px";
+      img.style.borderRadius = "6px";
+      img.loading = "lazy";
+
+      const br = document.createElement("br");
+
+      messageDiv.append(img, br, videoCategorySpan, content);
     }
   }
 
   const timeAgo = formatTimeAgo(item.timestamp);
+  timeDiv.textContent = timeAgo;
 
-  div.innerHTML = `
-    <img loading="lazy" src="${item.channelImageUrl}" alt="${item.channelName}" class="channel-img">
-    <div class="notification-content">
-      <div class="channel-name">${contentType} ${contentTitle}</div>
-      <div class="time-ago" data-timestamp="${item.timestamp}">${timeAgo}</div>
-      <div class="notification-message">${contentHTML}</div>
-    </div>
-    <button class="mark-one-read-btn" title="삭제">×</button>
-  `;
+  // 최종 조합
+  contentDiv.append(nameDiv, timeDiv, messageDiv);
+
+  div.append(channelImg, contentDiv, deleteBtn);
+
   return div;
 }
