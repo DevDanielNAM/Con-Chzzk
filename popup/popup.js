@@ -527,8 +527,8 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
       break;
     case "VIDEO":
       document.getElementById("mark-video-btn").classList.add("active-filter");
-      markAllDeleteBtn.innerText = "🎬/🎦 모두 삭제";
-      markAllReadBtn.innerText = "🎬/🎦 모두 읽음";
+      markAllDeleteBtn.innerText = "🎬 / 🎦 모두 삭제";
+      markAllReadBtn.innerText = "🎬 / 🎦 모두 읽음";
       break;
     case "POST":
       document
@@ -976,6 +976,7 @@ function createNotificationItem(item) {
       "../thumbnail.gif" ||
       item.channelImageUrl ||
       "../icon_128.png";
+
     const videoCategorySpan = document.createElement("span");
     videoCategorySpan.className = "video-category";
     videoCategorySpan.textContent = item.videoCategoryValue;
@@ -986,6 +987,7 @@ function createNotificationItem(item) {
     if (item.adult) {
       const span = document.createElement("span");
       span.className = "video-adult-mode";
+      span.style.marginBottom = "3px";
 
       const img = document.createElement("img");
       img.src = imageUrl;
@@ -995,7 +997,11 @@ function createNotificationItem(item) {
 
       span.append(img);
 
-      messageDiv.append(span, br, videoCategorySpan, content);
+      if (item.videoCategoryValue) {
+        messageDiv.append(span, br, videoCategorySpan, content);
+      } else {
+        messageDiv.append(span, br, content);
+      }
     } else {
       const img = document.createElement("img");
       img.src = imageUrl;
@@ -1007,7 +1013,11 @@ function createNotificationItem(item) {
 
       const br = document.createElement("br");
 
-      messageDiv.append(img, br, videoCategorySpan, content);
+      if (item.videoCategoryValue) {
+        messageDiv.append(img, br, videoCategorySpan, content);
+      } else {
+        messageDiv.append(img, br, content);
+      }
     }
   }
 
