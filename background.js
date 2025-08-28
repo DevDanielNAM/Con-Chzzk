@@ -1464,6 +1464,8 @@ async function handleNotificationClick(notificationId) {
         case "CATEGORY":
         case "LIVETITLE":
         case "CATEGORY/LIVETITLE":
+        case "WATCHPARTY":
+        case "DROPS":
         case "ADULT":
         case "LIVE":
           targetUrl = `https://chzzk.naver.com/live/${item.channelId}`;
