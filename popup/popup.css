@@ -113,7 +113,7 @@ body {
   width: 85%;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px 12px;
 }
 
 #settings-btn {
@@ -201,9 +201,9 @@ input:checked + .slider:before {
 }
 
 #notification-center {
-  margin-top: 8px;
+  margin-top: 7px;
   border-top: 1px solid #eee;
-  padding-top: 10px;
+  padding-top: 5px;
 }
 
 .center-header {
@@ -212,7 +212,6 @@ input:checked + .slider:before {
   justify-content: space-between;
   align-items: center;
   padding: 0 10px;
-  margin-bottom: 2px;
 }
 
 .center-header h3 {
@@ -249,6 +248,7 @@ input:checked + .slider:before {
 
 .center-header-wrapper > .mark-btn-wrapper {
   margin-left: 8px;
+  padding-bottom: 2px;
 }
 
 .mark-btn-wrapper button.active-filter {
@@ -269,7 +269,7 @@ input:checked + .slider:before {
 }
 
 #notification-list {
-  max-height: 420px;
+  max-height: 430px;
   overflow-y: auto; /* 내용이 많으면 스크롤 */
 }
 
@@ -292,7 +292,7 @@ input:checked + .slider:before {
 
 .notification-attach-wrapper {
   display: flex;
-  gap: 5px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
@@ -323,11 +323,51 @@ input:checked + .slider:before {
   object-fit: cover;
 }
 
+.live-channel-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-clip: content-box, border-box;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: scale 0.3s ease-in-out;
+}
+
+.live-channel-link:hover {
+  scale: 1.05;
+}
+
+.live-channel-img-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: linear-gradient(#fff, #fff),
+    linear-gradient(180deg, #00ffa3 0, #027f80 100%);
+  position: relative;
+  background-clip: content-box, border-box;
+  border-radius: 50%;
+  padding: 2px;
+  width: 35px;
+  height: 35px;
+  margin-right: 5px;
+}
+
+.live-channel-img-wrapper em {
+  bottom: -4px;
+  font-size: 0;
+  left: 26%;
+  position: absolute;
+  background-color: #e02020;
+  padding: 2px;
+  border-radius: 4px;
+}
+
 .channel-img {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  margin-right: 10px;
+  margin: 1px;
+  background-color: rgba(0, 0, 0, 0.06);
   object-fit: cover;
 }
 
@@ -397,8 +437,8 @@ input:checked + .slider:before {
 .notification-message {
   font-size: 12px;
   color: #333;
-  word-break: auto-phrase;
-  line-height: 14px;
+  word-break: break-word;
+  line-height: 13px;
 }
 
 .edited-indicator {
@@ -413,6 +453,12 @@ input:checked + .slider:before {
   cursor: pointer;
   color: #aaa;
   padding: 5px;
+  transition: all 0.3s ease-in-out;
+}
+
+.mark-one-delete-btn:hover {
+  color: rgba(243, 38, 38, 0.7);
+  scale: 1.2;
 }
 
 #no-notifications {

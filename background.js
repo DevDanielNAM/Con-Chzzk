@@ -203,11 +203,29 @@ async function updateUnreadCountBadge() {
 function normalizeBody(text) {
   return text.replace(/\r\n?/g, "\n").replace(/(?:\n[ \t]*){3,}/g, "\n\n");
 }
-function makeExcerpt(text) {
+function makeExcerptWithAttaches(text) {
   const collapsed = normalizeBody(text || "");
   const paraCount = (collapsed.match(/\n\n/g) || []).length + 1;
   const max =
-    paraCount > 7 ? 240 : paraCount > 6 ? 260 : paraCount > 5 ? 280 : 375;
+    paraCount > 7
+      ? 280
+      : paraCount > 6
+      ? 300
+      : paraCount > 5
+      ? 320
+      : paraCount > 4
+      ? 350
+      : paraCount > 3
+      ? 370
+      : 380;
+  return collapsed.length > max
+    ? collapsed.slice(0, max).replace(/\s+\S*$/, "") + " ...(더보기)"
+    : collapsed;
+}
+function makeExcerpt(text) {
+  const collapsed = normalizeBody(text || "");
+  const paraCount = (collapsed.match(/\n\n/g) || []).length + 1;
+  const max = paraCount > 10 ? 400 : 420;
   return collapsed.length > max
     ? collapsed.slice(0, max).replace(/\s+\S*$/, "") + " ...(더보기)"
     : collapsed;
@@ -1345,28 +1363,24 @@ function createPostObject(post, channel) {
 
   if (hasText) {
     if (hasAttaches) {
-      messageContent = makeExcerpt(content);
+      messageContent = makeExcerptWithAttaches(content);
 
       if (
         attaches.length === 1 &&
-        messageContent.length < 250 &&
+        messageContent.length < 310 &&
         countParagraphs(messageContent) < 7
       ) {
         attachLayout = "layout-single-big";
       }
       if (
         attaches.length === 2 &&
-        messageContent.length < 250 &&
+        messageContent.length < 310 &&
         countParagraphs(messageContent) < 7
       ) {
         attachLayout = "layout-double-medium";
       }
     } else {
-      messageContent = normalizeBody(content);
-      messageContent =
-        messageContent.length > 375
-          ? messageContent.slice(0, 375) + " ...(더보기)"
-          : messageContent;
+      messageContent = makeExcerpt(content);
     }
   }
 

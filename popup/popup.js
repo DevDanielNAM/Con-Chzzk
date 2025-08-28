@@ -347,8 +347,12 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
   const centerHeader = document.querySelector(".center-header h3");
 
   // 1. 스토리지에서 알림 내역 가져오기
-  const data = await chrome.storage.local.get("notificationHistory");
+  const data = await chrome.storage.local.get([
+    "notificationHistory",
+    "liveStatus",
+  ]);
   const history = data.notificationHistory || [];
+  const liveStatusMap = data.liveStatus || {}; // 최신 라이브 상태 맵
 
   // *** 현재 필터 상태에 따라 보여줄 목록을 결정 ***
   let filteredHistory = history;
@@ -474,7 +478,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
             new Date(parseTimestampFormat(a.timestamp))
         )
         .forEach((item) => {
-          const itemElement = createNotificationItem(item);
+          const itemElement = createNotificationItem(item, liveStatusMap);
           listElement.appendChild(itemElement);
         });
     }
@@ -702,8 +706,9 @@ function makeExcerpt(text) {
 /**
  * 알림 아이템 HTML 요소를 생성하는 함수
  * @param {object} item - 알림 데이터 객체
+ * @param {object} liveStatusMap - 모든 채널의 최신 라이브 상태 맵
  */
-function createNotificationItem(item) {
+function createNotificationItem(item, liveStatusMap) {
   const div = document.createElement("div");
   div.className = "notification-item";
   if (item.read) {
@@ -720,11 +725,52 @@ function createNotificationItem(item) {
     div.dataset.videoNo = item.videoNo;
   }
 
+  const channelLink = document.createElement("a");
+  channelLink.className = "live-channel-link";
+  channelLink.href = `https://chzzk.naver.com/${item.channelId}`;
+  channelLink.title = `${item.channelName} 채널로 이동`;
+  channelLink.target = "_blank"; // 새 탭에서 열기
+
+  // 이벤트 버블링을 막아, 이미지 클릭 시 전체 알림 클릭이 함께 실행되는 것을 방지
+  channelLink.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
   const channelImg = document.createElement("img");
   channelImg.className = "channel-img";
   channelImg.src = item.channelImageUrl;
   channelImg.alt = item.channelName;
   channelImg.loading = "lazy";
+
+  channelLink.append(channelImg);
+
+  const liveChannelImgWrapper = document.createElement("span");
+  liveChannelImgWrapper.className = "live-channel-img-wrapper";
+
+  const em = document.createElement("em");
+
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  const svgElement = document.createElementNS(svgNS, "svg");
+
+  svgElement.setAttribute("width", "16");
+  svgElement.setAttribute("height", "8");
+  svgElement.setAttribute("viewBox", "0 0 28 10");
+
+  const pathElement = document.createElementNS(svgNS, "path");
+
+  pathElement.setAttribute(
+    "d",
+    "M21.553 9.3V.7H27.5v2.003h-3.47v1.394h3.253V5.91H24.03v1.389h3.47V9.3h-5.947ZM14.332 9.3 11.82.7h2.863l1.244 5.99h.117L17.288.7h2.863l-2.512 8.6h-3.307ZM7.941 9.3V.7h2.477v8.6H7.941ZM.5 9.3V.7h2.477v6.598h3.435V9.3H.5Z"
+  );
+
+  pathElement.setAttribute("fill", "#fff");
+
+  svgElement.appendChild(pathElement);
+
+  em.appendChild(svgElement);
+
+  liveChannelImgWrapper.append(channelLink, em);
 
   const contentDiv = document.createElement("div");
   contentDiv.className = "notification-content";
@@ -1027,7 +1073,14 @@ function createNotificationItem(item) {
   // 최종 조합
   contentDiv.append(nameDiv, timeDiv, messageDiv);
 
-  div.append(channelImg, contentDiv, deleteBtn);
+  // *** 현재 라이브 상태를 liveStatusMap에서 확인 ***
+  const isCurrentlyLive = liveStatusMap[item.channelId]?.live || false;
+  if (isCurrentlyLive) {
+    div.append(liveChannelImgWrapper, contentDiv, deleteBtn);
+  } else {
+    channelImg.style.marginRight = "10px";
+    div.append(channelLink, contentDiv, deleteBtn);
+  }
 
   return div;
 }
