@@ -9,7 +9,7 @@ body {
 
 #status-wrapper {
   border-radius: 8px;
-  margin-bottom: 7px;
+  margin-bottom: 6px;
   font-weight: bold;
 }
 
@@ -72,7 +72,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   width: 366px;
-  height: 475px;
+  height: 484px;
 }
 
 #controls-wrapper div {
@@ -82,7 +82,7 @@ body {
   width: 156px;
   height: 51px;
   padding: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   border-radius: 8px;
   backdrop-filter: blur(1px);
   background-color: #ffffff5e;
@@ -113,11 +113,10 @@ body {
   width: 85%;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 9px 13px;
 }
 
 #settings-btn {
-  padding: 8px 0 8px 8px;
   cursor: pointer;
 }
 
@@ -197,11 +196,11 @@ input:checked + .slider:before {
   box-shadow: 0px 0px 14px 3px #beeefaa6;
   width: 93.5%;
   z-index: 1;
-  height: 93%;
+  height: 93.5%;
 }
 
 #notification-center {
-  margin-top: 7px;
+  margin-top: 6px;
   border-top: 1px solid #eee;
   padding-top: 5px;
 }
@@ -212,6 +211,7 @@ input:checked + .slider:before {
   justify-content: space-between;
   align-items: center;
   padding: 0 10px;
+  margin-bottom: 2px;
 }
 
 .center-header h3 {
@@ -235,7 +235,7 @@ input:checked + .slider:before {
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 11px;
-  padding: 3px 6px;
+  padding: 2px 4px;
   cursor: pointer;
   color: #555;
   font-family: inherit;
@@ -269,7 +269,7 @@ input:checked + .slider:before {
 }
 
 #notification-list {
-  max-height: 430px;
+  height: 432px;
   overflow-y: auto; /* 내용이 많으면 스크롤 */
 }
 
