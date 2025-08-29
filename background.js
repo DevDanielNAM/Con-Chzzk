@@ -951,12 +951,14 @@ function createLiveNotification(channel, liveInfo) {
     openDate,
     dropsCampaignNo,
     watchPartyTag,
+    paidPromotion,
   } = liveInfo;
   const notificationId = `live-${channelId}-${openDate}`;
 
   let messageContent = liveCategoryValue ? `[${liveCategoryValue}]` : "";
   if (watchPartyTag) messageContent += `[같이보기/${watchPartyTag}]`;
   if (dropsCampaignNo) messageContent += "[드롭스]";
+  if (paidPromotion) messageContent += "[AD]";
   messageContent += liveCategoryValue
     ? ` ${decodeHtmlEntities(liveTitle)}`
     : `${decodeHtmlEntities(liveTitle)}`;
@@ -1075,14 +1077,14 @@ function createLiveAdultChangeNotification(
 // --- 같이보기 설정 알림 생성 함수 ---
 function createLiveWatchPartyNotification(notificationObject, liveInfo) {
   const { id, channelName, channelImageUrl } = notificationObject;
-  const { liveTitle, liveCategoryValue, watchPartyTag } = liveInfo;
+  const { watchPartyTag } = liveInfo;
 
   const messageTitle = watchPartyTag
     ? `🍿 ${channelName}님의 같이보기 설정`
     : `🍿 ${channelName}님의 같이보기 해제`;
   const messageContent = watchPartyTag
     ? `${channelName}님이 [${watchPartyTag}] 같이보기 설정을 했어요`
-    : `${channelName}님이 [${watchPartyTag}] 같이보기 설정을 해제했어요`;
+    : `${channelName}님이 같이보기 설정을 해제했어요`;
 
   chrome.notifications.create(id, {
     type: "basic",
@@ -1095,7 +1097,7 @@ function createLiveWatchPartyNotification(notificationObject, liveInfo) {
 // --- 드롭스 설정 알림 생성 함수 ---
 function createLiveDropsNotification(notificationObject, liveInfo) {
   const { id, channelName, channelImageUrl } = notificationObject;
-  const { liveTitle, liveCategoryValue, dropsCampaignNo } = liveInfo;
+  const { dropsCampaignNo } = liveInfo;
 
   const messageTitle = dropsCampaignNo
     ? `🪂 ${channelName}님의 드롭스 설정`

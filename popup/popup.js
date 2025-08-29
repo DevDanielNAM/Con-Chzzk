@@ -955,14 +955,22 @@ function createNotificationItem(item, liveStatusMap) {
     const liveTitle = document.createTextNode(` ${item.liveTitle}`);
 
     if (item.liveCategoryValue) {
-      messageDiv.append(
-        categorySpan,
-        watchPartySpan,
-        watchPartyTagSpan,
-        liveTitle
-      );
+      if (item.watchPartyTag) {
+        messageDiv.append(
+          categorySpan,
+          watchPartySpan,
+          watchPartyTagSpan,
+          liveTitle
+        );
+      } else {
+        messageDiv.append(categorySpan, liveTitle);
+      }
     } else {
-      messageDiv.append(watchPartySpan, watchPartyTagSpan, liveTitle);
+      if (item.watchPartyTag) {
+        messageDiv.append(watchPartySpan, watchPartyTagSpan, liveTitle);
+      } else {
+        messageDiv.append(liveTitle);
+      }
     }
   } else if (item.type === "DROPS") {
     const categorySpan = document.createElement("span");
@@ -976,9 +984,17 @@ function createNotificationItem(item, liveStatusMap) {
     const liveTitle = document.createTextNode(` ${item.liveTitle}`);
 
     if (item.liveCategoryValue) {
-      messageDiv.append(categorySpan, dropsSpan, liveTitle);
+      if (item.drops) {
+        messageDiv.append(categorySpan, dropsSpan, liveTitle);
+      } else {
+        messageDiv.append(categorySpan, liveTitle);
+      }
     } else {
-      messageDiv.append(dropsSpan, liveTitle);
+      if (item.drops) {
+        messageDiv.append(dropsSpan, liveTitle);
+      } else {
+        messageDiv.append(liveTitle);
+      }
     }
   } else if (item.type === "CATEGORY") {
     const oldCategorySpan = document.createElement("span");
