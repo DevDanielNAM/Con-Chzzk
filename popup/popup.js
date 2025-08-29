@@ -827,7 +827,7 @@ function createNotificationItem(item, liveStatusMap) {
     contentType = "🍿";
     contentTitle =
       item.channelName +
-      `님이 같이보기를 ${item.watchParty ? "설정" : "해제"}했어요`;
+      `님이 같이보기를 ${item.watchPartyTag ? "설정" : "해제"}했어요`;
   } else if (item.type === "DROPS") {
     contentType = "🪂";
     contentTitle =
@@ -892,6 +892,11 @@ function createNotificationItem(item, liveStatusMap) {
         }
         attachWrapper.appendChild(img);
       });
+
+      if (isCurrentlyLive) {
+        attachWrapper.style.gap = "3px";
+      }
+
       messageDiv.append(attachWrapper);
     } else {
       // 마이그레이션 fallback

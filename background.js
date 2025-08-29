@@ -153,6 +153,29 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       }
       await chrome.storage.local.set(dataToSave);
     }
+
+    const { migrated_lounge_channelId } = await chrome.storage.local.get(
+      "migrated_lounge_channelId"
+    );
+    if (!migrated_lounge_channelId) {
+      const { notificationHistory = [] } = await chrome.storage.local.get(
+        "notificationHistory"
+      );
+      let changed = false;
+
+      for (const item of notificationHistory) {
+        if (item.type === "LOUNGE" && typeof item.channelId === "undefined") {
+          item.channelId = "c42cd75ec4855a9edf204a407c3c1dd2";
+          changed = true;
+        }
+      }
+
+      const dataToSave = { migrated_lounge_channelId: true };
+      if (changed) {
+        dataToSave.notificationHistory = notificationHistory;
+      }
+      await chrome.storage.local.set(dataToSave);
+    }
   }
 
   // '업데이트' 시에만 실행되는 로직
@@ -889,6 +912,7 @@ async function getLatestLoungePost(boardNum) {
         boardId: latestPost.board.boardId,
         boardName: latestPost.board.boardName,
         title: latestPost.feed.title,
+        channelId: latestPost.user.userIdHash,
         channelName: latestPost.user.nickname,
         channelImageUrl: latestPost.user.profileImageUrl,
         feedLink: latestPost.feedLink.pc,
@@ -1370,14 +1394,14 @@ function createPostObject(post, channel) {
       if (
         attaches.length === 1 &&
         messageContent.length < 310 &&
-        countParagraphs(messageContent) < 7
+        countParagraphs(messageContent) < 8
       ) {
         attachLayout = "layout-single-big";
       }
       if (
         attaches.length === 2 &&
         messageContent.length < 310 &&
-        countParagraphs(messageContent) < 7
+        countParagraphs(messageContent) < 8
       ) {
         attachLayout = "layout-double-medium";
       }
@@ -1410,6 +1434,7 @@ function createLoungeObject(post) {
     boardName,
     feedId,
     title,
+    channelId,
     channelName,
     channelImageUrl,
     feedLink,
@@ -1421,6 +1446,7 @@ function createLoungeObject(post) {
   return {
     id: notificationId,
     type: "LOUNGE",
+    channelId,
     channelName,
     boardId,
     feedId,
