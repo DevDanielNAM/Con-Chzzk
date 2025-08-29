@@ -1118,7 +1118,9 @@ function createNotificationItem(item, liveStatusMap) {
   if (isCurrentlyLive) {
     div.append(liveChannelImgWrapper, contentDiv, deleteBtn);
   } else {
-    channelImg.style.marginRight = "10px";
+    channelLink.style.width = "32px";
+    channelLink.style.height = "32px";
+    channelLink.style.marginRight = "10px";
     div.append(channelLink, contentDiv, deleteBtn);
   }
 
