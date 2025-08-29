@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "콘치즈(Con:Chzzk)",
-  "version": "1.2.4",
+  "version": "1.3.0",
   "description": "치지직과 내가 이어지는 맛있는 알림! 팔로우한 스트리머의 라이브부터 다시보기, 커뮤니티 그리고 치지직 소식까지 한 번에 알려줍니다.",
   "permissions": ["alarms", "notifications", "tabs", "storage"],
   "host_permissions": [
