@@ -301,7 +301,6 @@ input:checked + .slider:before {
   margin-top: 3px;
   max-width: 250px;
   border-radius: 6px;
-  /* height: 141px; */
   object-fit: cover;
 }
 
@@ -310,7 +309,6 @@ input:checked + .slider:before {
   margin-top: 3px;
   max-width: 155px;
   border-radius: 6px;
-  /* height: 141px; */
   object-fit: cover;
 }
 
@@ -319,7 +317,6 @@ input:checked + .slider:before {
   margin-top: 3px;
   max-width: 100px;
   border-radius: 6px;
-  /* height: 141px; */
   object-fit: cover;
 }
 
@@ -327,9 +324,8 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-clip: content-box, border-box;
-  border-radius: 50%;
-  cursor: pointer;
+  width: 35px;
+  height: 35px;
   transition: scale 0.3s ease-in-out;
 }
 
