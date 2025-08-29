@@ -471,160 +471,147 @@ async function checkLiveStatus(
         `${LIVE_STATUS_API_PREFIX}${channelId}/live-status`
       );
       const liveStatusData = await liveStatusResponse.json();
-      const currentLiveId = `live-${channelId}-${liveStatusData.content?.openDate}`;
-      const currentCategory = liveStatusData.content?.liveCategoryValue;
-      const currentLiveTitle = liveStatusData.content?.liveTitle;
-      const currentAdultMode = liveStatusData.content?.adult;
-      const currentWatchParty = liveStatusData.content?.watchPartyTag;
-      const currentDrops = liveStatusData.content?.dropsCampaignNo;
-      const currentpaidPromotion = liveStatusData.content?.paidPromotion;
+      const liveContent = liveStatusData.content;
+      if (!liveContent) continue; // 데이터 없으면 다음 채널로
 
-      const isNewLiveEvent =
-        !wasLive && channel.personalData.following.notification;
+      const currentLiveId = `live-${channelId}-${liveContent?.openDate}`;
+      const currentCategory = liveContent?.liveCategoryValue;
+      const currentLiveTitle = liveContent?.liveTitle;
+      const currentAdultMode = liveContent?.adult;
+      const currentWatchParty = liveContent?.watchPartyTag;
+      const currentDrops = liveContent?.dropsCampaignNo;
+      const currentpaidPromotion = liveContent?.paidPromotion;
 
-      if (isNewLiveEvent) {
-        // 1. 방송 시작 알림
-        notifications.push(createLiveObject(channel, liveStatusData.content));
-
+      // --- 1. 방송 시작 이벤트 처리 ---
+      if (!wasLive && channel.personalData.following.notification) {
+        notifications.push(createLiveObject(channel, liveContent));
         if (!isPaused && !isLivePaused) {
-          createLiveNotification(channel, liveStatusData.content);
+          createLiveNotification(channel, liveContent);
         }
-      } else if (
-        prevCategory &&
-        wasLive &&
-        currentCategory &&
-        currentCategory !== prevCategory &&
-        prevLiveTitle &&
-        currentLiveTitle &&
-        currentLiveTitle !== prevLiveTitle &&
-        channel.personalData.following.notification
-      ) {
-        const notificationObject = createCategoryAndLiveTitleChangeObject(
-          channel,
-          prevCategory,
-          currentCategory,
-          prevLiveTitle,
-          currentLiveTitle
-        );
-        notifications.push(notificationObject);
+      }
 
-        if (!isPaused && !(isCategoryPaused || isLiveTitlePaused)) {
-          createCategoryAndLiveTitleChangeNotification(
-            notificationObject,
+      // --- 2. 라이브 "중" 상태 변경 이벤트 처리 ---
+      if (wasLive && channel.personalData.following.notification) {
+        if (
+          prevCategory &&
+          currentCategory &&
+          currentCategory !== prevCategory &&
+          prevLiveTitle &&
+          currentLiveTitle &&
+          currentLiveTitle !== prevLiveTitle
+        ) {
+          const notificationObject = createCategoryAndLiveTitleChangeObject(
+            channel,
             prevCategory,
             currentCategory,
             prevLiveTitle,
             currentLiveTitle
           );
-        }
-      } else {
-        // 2. 카테고리 변경 알림
-        if (
-          prevCategory &&
-          wasLive &&
-          currentCategory &&
-          currentCategory !== prevCategory &&
-          channel.personalData.following.notification
-        ) {
-          const notificationObject = createCategoryChangeObject(
-            channel,
-            prevCategory,
-            currentCategory
-          );
           notifications.push(notificationObject);
 
-          if (!isPaused && !isCategoryPaused) {
-            createCategoryChangeNotification(
+          if (!isPaused && !(isCategoryPaused || isLiveTitlePaused)) {
+            createCategoryAndLiveTitleChangeNotification(
               notificationObject,
               prevCategory,
-              currentCategory
-            );
-          }
-        }
-        // 3. 라이브 제목 변경 알림
-        if (
-          prevLiveTitle &&
-          wasLive &&
-          currentLiveTitle &&
-          currentLiveTitle !== prevLiveTitle &&
-          channel.personalData.following.notification
-        ) {
-          const notificationObject = createLiveTitleChangeObject(
-            channel,
-            prevLiveTitle,
-            currentLiveTitle
-          );
-          notifications.push(notificationObject);
-
-          if (!isPaused && !isLiveTitlePaused) {
-            createLiveTitleChangeNotification(
-              notificationObject,
+              currentCategory,
               prevLiveTitle,
               currentLiveTitle
             );
           }
-        }
-        // 4. 19세 연령 제한 변경 알림
-        if (
-          wasLive &&
-          currentAdultMode !== prevAdultMode &&
-          channel.personalData.following.notification
-        ) {
-          const notificationObject = createLiveAdultChangeObject(
-            channel,
-            currentAdultMode,
-            liveStatusData.content.liveTitle,
-            liveStatusData.content.liveCategoryValue
-          );
-          notifications.push(notificationObject);
+        } else {
+          // 2. 카테고리 변경 알림
+          if (
+            prevCategory &&
+            currentCategory &&
+            currentCategory !== prevCategory
+          ) {
+            const notificationObject = createCategoryChangeObject(
+              channel,
+              prevCategory,
+              currentCategory
+            );
+            notifications.push(notificationObject);
 
-          if (!isPaused && !isRestrictPaused) {
-            createLiveAdultChangeNotification(
-              notificationObject,
+            if (!isPaused && !isCategoryPaused) {
+              createCategoryChangeNotification(
+                notificationObject,
+                prevCategory,
+                currentCategory
+              );
+            }
+          }
+          // 3. 라이브 제목 변경 알림
+          if (
+            prevLiveTitle &&
+            currentLiveTitle &&
+            currentLiveTitle !== prevLiveTitle
+          ) {
+            const notificationObject = createLiveTitleChangeObject(
+              channel,
+              prevLiveTitle,
+              currentLiveTitle
+            );
+            notifications.push(notificationObject);
+
+            if (!isPaused && !isLiveTitlePaused) {
+              createLiveTitleChangeNotification(
+                notificationObject,
+                prevLiveTitle,
+                currentLiveTitle
+              );
+            }
+          }
+          // 4. 19세 연령 제한 변경 알림
+          if (currentAdultMode !== prevAdultMode) {
+            const notificationObject = createLiveAdultChangeObject(
+              channel,
               currentAdultMode,
-              liveStatusData.content
+              liveStatusData.content.liveTitle,
+              liveStatusData.content.liveCategoryValue
             );
-          }
-        }
-        // 5. 같이보기 설정 알림
-        if (
-          wasLive &&
-          currentWatchParty !== prevWatchParty &&
-          channel.personalData.following.notification
-        ) {
-          const notificationObject = createLiveWatchPartyObject(
-            channel,
-            liveStatusData.content
-          );
-          notifications.push(notificationObject);
+            notifications.push(notificationObject);
 
-          if (!isPaused && !isWatchPartyPaused) {
-            createLiveWatchPartyNotification(
-              notificationObject,
-              liveStatusData.content
-            );
+            if (!isPaused && !isRestrictPaused) {
+              createLiveAdultChangeNotification(
+                notificationObject,
+                currentAdultMode,
+                liveStatusData.content
+              );
+            }
           }
-        }
-        // 6. 드롭스 설정 변경 알림
-        if (
-          wasLive &&
-          currentDrops !== prevDrops &&
-          channel.personalData.following.notification
-        ) {
-          const notificationObject = createLiveDropsObject(
-            channel,
-            liveStatusData.content
-          );
-          notifications.push(notificationObject);
-
-          if (!isPaused && !isDropsPaused) {
-            createLiveDropsNotification(
-              notificationObject,
+          // 5. 같이보기 설정 알림
+          if (currentWatchParty !== prevWatchParty) {
+            const notificationObject = createLiveWatchPartyObject(
+              channel,
               liveStatusData.content
             );
+            notifications.push(notificationObject);
+
+            if (!isPaused && !isWatchPartyPaused) {
+              createLiveWatchPartyNotification(
+                notificationObject,
+                liveStatusData.content
+              );
+            }
+          }
+          // 6. 드롭스 설정 변경 알림
+          if (currentDrops !== prevDrops) {
+            const notificationObject = createLiveDropsObject(
+              channel,
+              liveStatusData.content
+            );
+            notifications.push(notificationObject);
+
+            if (!isPaused && !isDropsPaused) {
+              createLiveDropsNotification(
+                notificationObject,
+                liveStatusData.content
+              );
+            }
           }
         }
       }
+
       newLiveStatus[channelId] = {
         live: true,
         currentLiveId: currentLiveId,
