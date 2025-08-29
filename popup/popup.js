@@ -851,7 +851,8 @@ function createNotificationItem(item, liveStatusMap) {
   } else if (item.type === "DROPS") {
     contentType = "🪂";
     contentTitle =
-      item.channelName + `님이 드롭스를 ${item.drops ? "설정" : "해제"}했어요`;
+      item.channelName +
+      `님이 드롭스를 ${item.dropsCampaignNo ? "설정" : "해제"}했어요`;
   } else if (item.type === "LOUNGE") {
     contentType = "🧀";
     contentTitle = item.channelName + "님이 새 라운지 글을 작성했어요";
