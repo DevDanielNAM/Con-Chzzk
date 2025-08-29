@@ -448,11 +448,13 @@ async function checkLiveStatus(
         `${LIVE_STATUS_API_PREFIX}${channelId}/live-status`
       );
       const liveStatusData = await liveStatusResponse.json();
+      const currentLiveId = `live-${channelId}-${liveStatusData.content?.openDate}`;
       const currentCategory = liveStatusData.content?.liveCategoryValue;
       const currentLiveTitle = liveStatusData.content?.liveTitle;
       const currentAdultMode = liveStatusData.content?.adult;
       const currentWatchParty = liveStatusData.content?.watchPartyTag;
       const currentDrops = liveStatusData.content?.dropsCampaignNo;
+      const currentpaidPromotion = liveStatusData.content?.paidPromotion;
 
       const isNewLiveEvent =
         !wasLive && channel.personalData.following.notification;
@@ -602,20 +604,24 @@ async function checkLiveStatus(
       }
       newLiveStatus[channelId] = {
         live: true,
+        currentLiveId: currentLiveId,
         category: currentCategory,
         liveTitle: currentLiveTitle,
         adultMode: currentAdultMode,
         watchParty: currentWatchParty,
         drops: currentDrops,
+        paidPromotion: currentpaidPromotion,
       };
     } else {
       newLiveStatus[channelId] = {
         live: false,
+        currentLiveId: null,
         category: null,
         liveTitle: null,
         adultMode: false,
         watchParty: false,
         drops: false,
+        paidPromotion: false,
       };
     }
   }
@@ -948,10 +954,12 @@ function createLiveNotification(channel, liveInfo) {
   } = liveInfo;
   const notificationId = `live-${channelId}-${openDate}`;
 
-  let messageContent = `[${liveCategoryValue}]`;
+  let messageContent = liveCategoryValue ? `[${liveCategoryValue}]` : "";
   if (watchPartyTag) messageContent += `[같이보기/${watchPartyTag}]`;
   if (dropsCampaignNo) messageContent += "[드롭스]";
-  messageContent += ` ${decodeHtmlEntities(liveTitle)}`;
+  messageContent += liveCategoryValue
+    ? ` ${decodeHtmlEntities(liveTitle)}`
+    : `${decodeHtmlEntities(liveTitle)}`;
 
   // 1. 브라우저 알림 생성
   chrome.notifications.create(notificationId, {
@@ -1069,16 +1077,12 @@ function createLiveWatchPartyNotification(notificationObject, liveInfo) {
   const { id, channelName, channelImageUrl } = notificationObject;
   const { liveTitle, liveCategoryValue, watchPartyTag } = liveInfo;
 
-  const messageTitle = dropsCampaignNo
+  const messageTitle = watchPartyTag
     ? `🍿 ${channelName}님의 같이보기 설정`
     : `🍿 ${channelName}님의 같이보기 해제`;
-  const messageContent = dropsCampaignNo
-    ? `${channelName}님이 [${watchPartyTag}] 같이보기 설정을 했어요\n[${liveCategoryValue}] ${decodeHtmlEntities(
-        liveTitle
-      )}`
-    : `${channelName}님이 [${watchPartyTag}] 같이보기 설정을 해제했어요\n[${liveCategoryValue}] ${decodeHtmlEntities(
-        liveTitle
-      )}`;
+  const messageContent = watchPartyTag
+    ? `${channelName}님이 [${watchPartyTag}] 같이보기 설정을 했어요`
+    : `${channelName}님이 [${watchPartyTag}] 같이보기 설정을 해제했어요`;
 
   chrome.notifications.create(id, {
     type: "basic",
@@ -1097,12 +1101,8 @@ function createLiveDropsNotification(notificationObject, liveInfo) {
     ? `🪂 ${channelName}님의 드롭스 설정`
     : `🪂 ${channelName}님의 드롭스 해제`;
   const messageContent = dropsCampaignNo
-    ? `${channelName}님이 드롭스 설정을 했어요\n[${liveCategoryValue}] ${decodeHtmlEntities(
-        liveTitle
-      )}`
-    : `${channelName}님이 드롭스 설정을 해제했어요\n[${liveCategoryValue}] ${decodeHtmlEntities(
-        liveTitle
-      )}`;
+    ? `${channelName}님이 드롭스 설정을 했어요`
+    : `${channelName}님이 드롭스 설정을 해제했어요`;
 
   chrome.notifications.create(id, {
     type: "basic",

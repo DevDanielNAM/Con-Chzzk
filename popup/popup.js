@@ -709,6 +709,12 @@ function makeExcerpt(text) {
  * @param {object} liveStatusMap - 모든 채널의 최신 라이브 상태 맵
  */
 function createNotificationItem(item, liveStatusMap) {
+  // *** 현재 라이브 상태를 liveStatusMap에서 확인 ***
+  const currentLiveStatus = liveStatusMap[item.channelId];
+  const isCurrentlyLive = currentLiveStatus?.live || false;
+  const currentLiveId = currentLiveStatus?.currentLiveId || null;
+  const hasPaidPromotion = currentLiveStatus?.paidPromotion || false;
+
   const div = document.createElement("div");
   div.className = "notification-item";
   if (item.read) {
@@ -895,11 +901,13 @@ function createNotificationItem(item, liveStatusMap) {
       messageDiv.append(content);
     }
   } else if (item.type === "LIVE") {
-    const span = document.createElement("span");
-    span.className = "live-category";
-    span.textContent = item.liveCategoryValue;
+    const categorySpan = document.createElement("span");
+    categorySpan.className = "live-category";
+    categorySpan.textContent = item.liveCategoryValue;
 
-    messageDiv.append(span);
+    if (item.liveCategoryValue) {
+      messageDiv.append(categorySpan);
+    }
 
     if (item.watchPartyTag) {
       const span = document.createElement("span");
@@ -921,19 +929,20 @@ function createNotificationItem(item, liveStatusMap) {
       messageDiv.append(span);
     }
 
-    if (item.paidPromotion) {
+    if (item.id === currentLiveId && hasPaidPromotion) {
       const span = document.createElement("span");
       span.className = "live-paid-promotion";
       span.textContent = "유료 프로모션 포함";
 
       messageDiv.append(span);
     }
+
     const liveTitle = document.createTextNode(` ${item.liveTitle}`);
     messageDiv.append(liveTitle);
   } else if (item.type === "WATCHPARTY") {
-    const span = document.createElement("span");
-    span.className = "live-category";
-    span.textContent = item.liveCategoryValue;
+    const categorySpan = document.createElement("span");
+    categorySpan.className = "live-category";
+    categorySpan.textContent = item.liveCategoryValue;
 
     const watchPartySpan = document.createElement("span");
     watchPartySpan.className = "live-watchParty";
@@ -945,11 +954,20 @@ function createNotificationItem(item, liveStatusMap) {
 
     const liveTitle = document.createTextNode(` ${item.liveTitle}`);
 
-    messageDiv.append(span, watchPartySpan, watchPartyTagSpan, liveTitle);
+    if (item.liveCategoryValue) {
+      messageDiv.append(
+        categorySpan,
+        watchPartySpan,
+        watchPartyTagSpan,
+        liveTitle
+      );
+    } else {
+      messageDiv.append(watchPartySpan, watchPartyTagSpan, liveTitle);
+    }
   } else if (item.type === "DROPS") {
-    const span = document.createElement("span");
-    span.className = "live-category";
-    span.textContent = item.liveCategoryValue;
+    const categorySpan = document.createElement("span");
+    categorySpan.className = "live-category";
+    categorySpan.textContent = item.liveCategoryValue;
 
     const dropsSpan = document.createElement("span");
     dropsSpan.className = "live-drops";
@@ -957,7 +975,11 @@ function createNotificationItem(item, liveStatusMap) {
 
     const liveTitle = document.createTextNode(` ${item.liveTitle}`);
 
-    messageDiv.append(dropsSpan, span, liveTitle);
+    if (item.liveCategoryValue) {
+      messageDiv.append(categorySpan, dropsSpan, liveTitle);
+    } else {
+      messageDiv.append(dropsSpan, liveTitle);
+    }
   } else if (item.type === "CATEGORY") {
     const oldCategorySpan = document.createElement("span");
     oldCategorySpan.className = "live-category";
@@ -1001,10 +1023,14 @@ function createNotificationItem(item, liveStatusMap) {
 
     const liveTitle = document.createTextNode(` ${item.liveTitle}`);
 
-    messageDiv.append(categorySpan, liveTitle);
+    if (item.liveCategoryValue) {
+      messageDiv.append(categorySpan, liveTitle);
+    } else {
+      messageDiv.append(liveTitle);
+    }
   } else if (item.type === "LOUNGE") {
     const span = document.createElement("span");
-    span.className = "ounge-board";
+    span.className = "lounge-board";
     span.textContent = item.boardName;
 
     const liveTitle = document.createTextNode(` ${item.title}`);
@@ -1073,8 +1099,6 @@ function createNotificationItem(item, liveStatusMap) {
   // 최종 조합
   contentDiv.append(nameDiv, timeDiv, messageDiv);
 
-  // *** 현재 라이브 상태를 liveStatusMap에서 확인 ***
-  const isCurrentlyLive = liveStatusMap[item.channelId]?.live || false;
   if (isCurrentlyLive) {
     div.append(liveChannelImgWrapper, contentDiv, deleteBtn);
   } else {
