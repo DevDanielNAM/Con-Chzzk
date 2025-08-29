@@ -187,6 +187,7 @@ function initializeAllToggles() {
     { toggleId: "video-pause-toggle", storageKey: "isVideoPaused" },
     { toggleId: "community-pause-toggle", storageKey: "isCommunityPaused" },
     { toggleId: "chzzk-lounge-pause-toggle", storageKey: "isLoungePaused" },
+    { toggleId: "chzzk-banner-pause-toggle", storageKey: "isBannerPaused" },
   ];
 
   // 2. 배열을 순회하며 각 설정에 대해 토글을 설정합니다.
@@ -340,6 +341,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
   const markVideoBtn = document.getElementById("mark-video-btn");
   const markCommunityBtn = document.getElementById("mark-community-btn");
   const markLoungeBtn = document.getElementById("mark-lounge-btn");
+  const markBannerBtn = document.getElementById("mark-banner-btn");
 
   const markAllReadBtn = document.getElementById("mark-all-read-btn");
   const markAllDeleteBtn = document.getElementById("mark-all-delete-btn");
@@ -408,6 +410,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     markVideoBtn.style.display = "none";
     markCommunityBtn.style.display = "none";
     markLoungeBtn.style.display = "none";
+    markBannerBtn.style.display = "none";
   } else {
     markAllReadBtn.style.display = "block";
 
@@ -422,6 +425,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     markVideoBtn.style.display = "none";
     markCommunityBtn.style.display = "none";
     markLoungeBtn.style.display = "none";
+    markBannerBtn.style.display = "none";
 
     const historySet = new Set();
 
@@ -462,6 +466,10 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
         case "LOUNGE":
           markLoungeBtn.style.display = "block";
           markLoungeBtn.title = "라운지";
+          break;
+        case "BANNER":
+          markBannerBtn.style.display = "block";
+          markBannerBtn.title = "배너";
           break;
       }
     });
@@ -545,6 +553,11 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
       document.getElementById("mark-lounge-btn").classList.add("active-filter");
       markAllDeleteBtn.innerText = "🧀 모두 삭제";
       markAllReadBtn.innerText = "🧀 모두 읽음";
+      break;
+    case "LOUNGE":
+      document.getElementById("mark-banner-btn").classList.add("active-filter");
+      markAllDeleteBtn.innerText = "📢 모두 삭제";
+      markAllReadBtn.innerText = "📢 모두 읽음";
       break;
   }
 
@@ -656,6 +669,11 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
 
   markLoungeBtn.onclick = () => {
     currentFilter = "LOUNGE";
+    renderNotificationCenter({ resetScroll: true });
+  };
+
+  markBannerBtn.onclick = () => {
+    currentFilter = "BANNER";
     renderNotificationCenter({ resetScroll: true });
   };
 
@@ -838,11 +856,14 @@ function createNotificationItem(item, liveStatusMap) {
   } else if (item.type === "LIVETITLE") {
     contentType = "🔄";
     contentTitle = item.channelName + "님이 라이브 제목을 변경했어요";
-  } else {
+  } else if (item.type === "ADULT") {
     contentType = item.adultMode ? "🔞" : "✅";
     contentTitle =
       item.channelName +
       `님이 19세 연령 제한을 ${item.adultMode ? "설정" : "해제"}했어요`;
+  } else {
+    contentType = "📢";
+    contentTitle = "치지직 배너를 알려드려요";
   }
 
   nameDiv.innerHTML = `${contentType} ${contentTitle}`;
@@ -1057,6 +1078,30 @@ function createNotificationItem(item, liveStatusMap) {
     const liveTitle = document.createTextNode(` ${item.title}`);
 
     messageDiv.append(span, liveTitle);
+  } else if (item.type === "BANNER") {
+    const div = document.createElement("div");
+    div.className = "banner-wrapper";
+
+    const img = document.createElement("img");
+    img.src = item.imageUrl;
+    img.style.width = "100px";
+
+    const adSpan = document.createElement("span");
+    adSpan.className = "ad-banner";
+    adSpan.textContent = "광고";
+
+    const messageContent = `${item.title}\n${item.subCopy}\n${item.scheduledDate}`;
+
+    const span = document.createElement("span");
+    span.className = "banner";
+    span.innerText = messageContent;
+    if (item.ad) {
+      div.append(span, img, adSpan);
+      messageDiv.append(div);
+    } else {
+      div.append(span, img);
+      messageDiv.append(div);
+    }
   } else {
     const content = document.createTextNode(item.content);
     messageDiv.append(content);
@@ -1118,15 +1163,25 @@ function createNotificationItem(item, liveStatusMap) {
   timeDiv.textContent = timeAgo;
 
   // 최종 조합
-  contentDiv.append(nameDiv, timeDiv, messageDiv);
+  if (item.type === "BANNER") {
+    contentDiv.append(nameDiv, messageDiv);
+  } else {
+    contentDiv.append(nameDiv, timeDiv, messageDiv);
+  }
 
   if (isCurrentlyLive) {
     div.append(liveChannelImgWrapper, contentDiv, deleteBtn);
   } else {
-    channelLink.style.width = "32px";
-    channelLink.style.height = "32px";
-    channelLink.style.marginRight = "10px";
-    div.append(channelLink, contentDiv, deleteBtn);
+    if (item.type === "BANNER") {
+      const emptyChannelImg = document.createElement("span");
+      emptyChannelImg.className = "empty-channel-img";
+      div.append(emptyChannelImg, contentDiv, deleteBtn);
+    } else {
+      channelLink.style.width = "32px";
+      channelLink.style.height = "32px";
+      channelLink.style.marginRight = "10px";
+      div.append(channelLink, contentDiv, deleteBtn);
+    }
   }
 
   return div;

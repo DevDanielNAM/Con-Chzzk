@@ -9,6 +9,8 @@ const LIVE_STATUS_API_PREFIX =
   "https://api.chzzk.naver.com/polling/v3.1/channels/";
 const CHZZK_LOUNGE_API_URL_PREFIX =
   "https://comm-api.game.naver.com/nng_main/v1/community/lounge/chzzk/feed";
+const CHZZK_BANNER_API_URL =
+  "https://api.chzzk.naver.com/service/v1/banners?deviceType=PC&positionsIn=HOME_SCHEDULE";
 
 const CHECK_ALARM_NAME = "chzzkAllCheck";
 
@@ -328,6 +330,7 @@ async function checkFollowedChannels() {
       "postStatus",
       "videoStatus",
       "loungeStatus",
+      "seenBannerNos",
       "notificationHistory",
       "isPaused",
       "isLivePaused",
@@ -339,6 +342,7 @@ async function checkFollowedChannels() {
       "isVideoPaused",
       "isCommunityPaused",
       "isLoungePaused",
+      "isBannerPaused",
     ]);
     const isPaused = prevState.isPaused || false;
     const isLivePaused = prevState.isLivePaused || false;
@@ -350,6 +354,7 @@ async function checkFollowedChannels() {
     const isVideoPaused = prevState.isVideoPaused || false;
     const isCommunityPaused = prevState.isCommunityPaused || false;
     const isLoungePaused = prevState.isLoungePaused || false;
+    const isBannerPaused = prevState.isBannerPaused || false;
 
     // 1. 모든 확인 작업을 병렬로 실행하고, "새로운 알림 내역"과 "새로운 상태"를 반환받음
     const results = await Promise.all([
@@ -380,6 +385,7 @@ async function checkFollowedChannels() {
         isVideoPaused
       ),
       checkLoungePosts(prevState.loungeStatus, isPaused, isLoungePaused),
+      checkBanners(prevState.seenBannerNos, isPaused, isBannerPaused),
     ]);
 
     // 2. 각 작업의 결과를 취합
@@ -387,6 +393,7 @@ async function checkFollowedChannels() {
     const postResult = results[1];
     const videoResult = results[2];
     const loungeResult = results[3];
+    const bannerResult = results[4];
 
     // 2-1. 새로 발생한 알림들을 모두 모음
     const newNotifications = [
@@ -394,6 +401,7 @@ async function checkFollowedChannels() {
       ...postResult.notifications,
       ...videoResult.notifications,
       ...loungeResult.notifications,
+      ...bannerResult.notifications,
     ];
 
     // 2-2. 최종적으로 저장될 알림 내역을 결정
@@ -422,6 +430,7 @@ async function checkFollowedChannels() {
       postStatus: postResult.newStatus,
       videoStatus: videoResult.newStatus,
       loungeStatus: loungeResult.newStatus,
+      seenBannerNos: bannerResult.newStatus,
       notificationHistory: finalHistory, // 썸네일 갱신과 새 알림이 모두 반영된 최종본
     });
 
@@ -1478,6 +1487,73 @@ function createVideoObject(video) {
   };
 }
 
+async function checkBanners(prevSeenBannerNos = [], isPaused, isBannerPaused) {
+  const notifications = [];
+  try {
+    const response = await fetch(CHZZK_BANNER_API_URL);
+    const data = await response.json();
+
+    if (data.code === 200 && data.content?.banners) {
+      const currentBanners = data.content.banners;
+      const seenSet = new Set(prevSeenBannerNos);
+
+      for (const banner of currentBanners) {
+        // 이전에 보지 못했던 새로운 배너일 경우
+        if (!seenSet.has(banner.bannerNo)) {
+          notifications.push(createBannerObject(banner));
+          if (!isPaused && !isBannerPaused) {
+            createBannerNotification(banner);
+          }
+        }
+      }
+      // 현재 배너 목록 전체를 "본 배너" 목록으로 반환하여 저장
+      const newSeenBannerNos = currentBanners.map((b) => b.bannerNo);
+      return { newStatus: newSeenBannerNos, notifications };
+    }
+  } catch (error) {
+    console.error("배너 확인 중 오류:", error);
+  }
+  return { newStatus: prevSeenBannerNos, notifications }; // 오류 시 이전 상태 유지
+}
+
+function createBannerNotification(notificationObject) {
+  const { id, ad, imageUrl, title, subCopy, scheduledDate } =
+    notificationObject;
+
+  let messageContent = "";
+
+  if (ad) messageContent += "[광고]";
+  messageContent += `${title}\n${subCopy}\n${scheduledDate}`;
+
+  chrome.notifications.create(id, {
+    type: "basic",
+    iconUrl: imageUrl || "icon_128.png",
+    title: `📢 치지직 배너 안내`,
+    message: messageContent,
+  });
+}
+
+function createBannerObject(banner) {
+  const { bannerNo, ad, imageUrl, landingUrl, title, subCopy, scheduledDate } =
+    banner;
+
+  const notificationId = `banner-${bannerNo}`;
+
+  return {
+    id: notificationId,
+    bannerNo,
+    type: "BANNER",
+    ad,
+    imageUrl,
+    landingUrl,
+    title,
+    subCopy,
+    scheduledDate,
+    timestamp: new Date(Date.now()).toISOString(),
+    read: false,
+  };
+}
+
 // --- 알림 클릭을 처리하는 재사용 가능한 함수 ---
 async function handleNotificationClick(notificationId) {
   const data = await chrome.storage.local.get("notificationHistory");
@@ -1507,6 +1583,9 @@ async function handleNotificationClick(notificationId) {
           break;
         case "LOUNGE":
           targetUrl = `${item.feedLink}`;
+          break;
+        case "BANNER":
+          targetUrl = `${item.landingUrl}`;
           break;
       }
       return { ...item, read: true };

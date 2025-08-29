@@ -296,6 +296,19 @@ input:checked + .slider:before {
   flex-wrap: wrap;
 }
 
+.banner-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-left: 6px;
+}
+
+.banner {
+  width: 180px;
+  line-height: normal;
+  font-size: 14px;
+}
+
 .layout-single-big img {
   display: block;
   margin-top: 3px;
@@ -346,6 +359,12 @@ input:checked + .slider:before {
   width: 35px;
   height: 35px;
   margin-right: 5px;
+}
+
+.empty-channel-img {
+  width: 32px;
+  height: 32px;
+  margin-right: 10px;
 }
 
 .live-channel-img-wrapper em {
