@@ -554,7 +554,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
       markAllDeleteBtn.innerText = "🧀 모두 삭제";
       markAllReadBtn.innerText = "🧀 모두 읽음";
       break;
-    case "LOUNGE":
+    case "BANNER":
       document.getElementById("mark-banner-btn").classList.add("active-filter");
       markAllDeleteBtn.innerText = "📢 모두 삭제";
       markAllReadBtn.innerText = "📢 모두 읽음";
@@ -732,6 +732,7 @@ function createNotificationItem(item, liveStatusMap) {
   const isCurrentlyLive = currentLiveStatus?.live || false;
   const currentLiveId = currentLiveStatus?.currentLiveId || null;
   const hasPaidPromotion = currentLiveStatus?.paidPromotion || false;
+  const isPrimeChannel = currentLiveStatus?.isPrime || false;
 
   const div = document.createElement("div");
   div.className = "notification-item";
@@ -740,7 +741,8 @@ function createNotificationItem(item, liveStatusMap) {
   }
   div.dataset.id = item.id;
   div.dataset.type = item.type;
-  div.dataset.channelId = item.channelId;
+  div.dataset.channelId =
+    item.type === "BANNER" ? "chzzk-banner" : item.channelId;
 
   if (item.commentId) {
     div.dataset.commentId = item.commentId;
@@ -961,6 +963,13 @@ function createNotificationItem(item, liveStatusMap) {
       span.textContent = "유료 프로모션 포함";
 
       messageDiv.append(span);
+    }
+
+    if (item.id === currentLiveId && isPrimeChannel) {
+      const primeSpan = document.createElement("span");
+      primeSpan.className = "live-prime";
+      primeSpan.textContent = "프라임";
+      messageDiv.appendChild(primeSpan);
     }
 
     const liveTitle = document.createTextNode(` ${item.liveTitle}`);

@@ -434,12 +434,21 @@ input:checked + .slider:before {
 .live-watchParty,
 .live-drops,
 .live-paid-promotion {
-  border: 1px solid #006641;
+  border: 1px solid #a4e1c7;
   border-radius: 3px;
   padding: 2px;
   margin-right: 2px;
   line-height: 25px;
   color: #009962;
+}
+
+.live-prime {
+  border: 1px solid rgba(166, 123, 14, 0.5);
+  border-radius: 3px;
+  padding: 2px;
+  margin-right: 2px;
+  line-height: 25px;
+  color: #cf9a12;
 }
 
 .channel-name {

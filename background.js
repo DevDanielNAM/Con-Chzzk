@@ -11,6 +11,8 @@ const CHZZK_LOUNGE_API_URL_PREFIX =
   "https://comm-api.game.naver.com/nng_main/v1/community/lounge/chzzk/feed";
 const CHZZK_BANNER_API_URL =
   "https://api.chzzk.naver.com/service/v1/banners?deviceType=PC&positionsIn=HOME_SCHEDULE";
+const CHECK_LIVE_PRIME_API_URL_PREFIX =
+  "https://api.chzzk.naver.com/service/v1/channels/";
 
 const CHECK_ALARM_NAME = "chzzkAllCheck";
 
@@ -175,6 +177,27 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       const dataToSave = { migrated_lounge_channelId: true };
       if (changed) {
         dataToSave.notificationHistory = notificationHistory;
+      }
+      await chrome.storage.local.set(dataToSave);
+    }
+
+    const { migrated_is_prime } = await chrome.storage.local.get(
+      "migrated_is_prime"
+    );
+    if (!migrated_is_prime) {
+      const { liveStatus = {} } = await chrome.storage.local.get("liveStatus");
+      let changed = false;
+
+      for (const channelId in liveStatus) {
+        if (typeof liveStatus[channelId].isPrime === "undefined") {
+          liveStatus[channelId].isPrime = false; // 기본값 false 설정
+          changed = true;
+        }
+      }
+
+      const dataToSave = { migrated_is_prime: true };
+      if (changed) {
+        dataToSave.liveStatus = liveStatus;
       }
       await chrome.storage.local.set(dataToSave);
     }
@@ -483,6 +506,13 @@ async function checkLiveStatus(
       const liveContent = liveStatusData.content;
       if (!liveContent) continue; // 데이터 없으면 다음 채널로
 
+      // 프라임 여부 확인
+      const channelInfoResponse = await fetch(
+        `https://api.chzzk.naver.com/service/v1/channels/${channelId}`
+      );
+      const channelInfoData = await channelInfoResponse.json();
+      const isPrime = channelInfoData.content?.paidProductSaleAllowed || false;
+
       const currentLiveId = `live-${channelId}-${liveContent?.openDate}`;
       const currentCategory = liveContent?.liveCategoryValue;
       const currentLiveTitle = liveContent?.liveTitle;
@@ -495,7 +525,7 @@ async function checkLiveStatus(
       if (!wasLive && channel.personalData.following.notification) {
         notifications.push(createLiveObject(channel, liveContent));
         if (!isPaused && !isLivePaused) {
-          createLiveNotification(channel, liveContent);
+          createLiveNotification(channel, liveContent, isPrime);
         }
       }
 
@@ -630,6 +660,7 @@ async function checkLiveStatus(
         watchParty: currentWatchParty,
         drops: currentDrops,
         paidPromotion: currentpaidPromotion,
+        isPrime: isPrime,
       };
     } else {
       newLiveStatus[channelId] = {
@@ -641,6 +672,7 @@ async function checkLiveStatus(
         watchParty: false,
         drops: false,
         paidPromotion: false,
+        isPrime: false,
       };
     }
   }
@@ -963,7 +995,7 @@ function decodeHtmlEntities(str) {
 
 // --- 알림 생성 함수들 ---
 // --- 라이브 알림 생성 함수 ---
-function createLiveNotification(channel, liveInfo) {
+function createLiveNotification(channel, liveInfo, isPrime) {
   const { channelId, channelName, channelImageUrl } = channel;
   const {
     liveTitle,
@@ -977,6 +1009,7 @@ function createLiveNotification(channel, liveInfo) {
 
   let messageContent = liveCategoryValue ? `[${liveCategoryValue}]` : "";
   if (watchPartyTag) messageContent += `[같이보기/${watchPartyTag}]`;
+  if (isPrime) messageContent += "[프라임]";
   if (dropsCampaignNo) messageContent += "[드롭스]";
   if (paidPromotion) messageContent += "[AD]";
   messageContent += liveCategoryValue
