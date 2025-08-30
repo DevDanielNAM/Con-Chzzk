@@ -969,7 +969,7 @@ function createNotificationItem(item, liveStatusMap) {
       messageDiv.append(span);
     }
 
-    if (item.id === currentLiveId && isPrimeChannel) {
+    if (isPrimeChannel || item.isPrime) {
       const primeSpan = document.createElement("span");
       primeSpan.className = "live-prime";
       primeSpan.textContent = "프라임";
@@ -1096,18 +1096,30 @@ function createNotificationItem(item, liveStatusMap) {
     div.className = "banner-wrapper";
 
     const img = document.createElement("img");
-    img.src = item.imageUrl;
+    img.src = item.lightThemeImageUrl ? item.lightThemeImageUrl : item.imageUrl;
     img.style.width = "100px";
 
     const adSpan = document.createElement("span");
     adSpan.className = "ad-banner";
     adSpan.textContent = "광고";
 
-    const messageContent = `${item.title}\n${item.subCopy}\n${item.scheduledDate}`;
+    const title = document.createElement("strong");
+    title.textContent = item.title;
+
+    const subCopy = document.createElement("div");
+    subCopy.textContent = item.subCopy;
+    subCopy.style.marginBottom = "4px";
+    subCopy.style.fontSize = "13px";
+    subCopy.style.color = "#666";
+
+    const scheduledDate = document.createElement("strong");
+    scheduledDate.textContent = item.scheduledDate;
+    scheduledDate.style.color = "#1bb373";
+    scheduledDate.style.fontSize = "12px";
 
     const span = document.createElement("span");
     span.className = "banner";
-    span.innerText = messageContent;
+    span.append(title, subCopy, scheduledDate);
     if (item.ad) {
       div.append(span, img, adSpan);
       messageDiv.append(div);
