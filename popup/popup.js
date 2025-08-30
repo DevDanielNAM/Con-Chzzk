@@ -767,11 +767,16 @@ function createNotificationItem(item, liveStatusMap) {
   channelImg.src = item.channelImageUrl;
   channelImg.alt = item.channelName;
   channelImg.loading = "lazy";
+  channelImg.style.width = "30px";
+  channelImg.style.height = "30px";
 
   channelLink.append(channelImg);
 
   const liveChannelImgWrapper = document.createElement("span");
   liveChannelImgWrapper.className = "live-channel-img-wrapper";
+
+  const channelImgWrapper = document.createElement("span");
+  channelImgWrapper.className = "channel-img-wrapper";
 
   const em = document.createElement("em");
 
@@ -795,8 +800,6 @@ function createNotificationItem(item, liveStatusMap) {
   svgElement.appendChild(pathElement);
 
   em.appendChild(svgElement);
-
-  liveChannelImgWrapper.append(channelLink, em);
 
   const contentDiv = document.createElement("div");
   contentDiv.className = "notification-content";
@@ -1180,17 +1183,19 @@ function createNotificationItem(item, liveStatusMap) {
   }
 
   if (isCurrentlyLive) {
+    liveChannelImgWrapper.append(channelLink, em);
+
     div.append(liveChannelImgWrapper, contentDiv, deleteBtn);
   } else {
     if (item.type === "BANNER") {
       const emptyChannelImg = document.createElement("span");
       emptyChannelImg.className = "empty-channel-img";
+
       div.append(emptyChannelImg, contentDiv, deleteBtn);
     } else {
-      channelLink.style.width = "32px";
-      channelLink.style.height = "32px";
-      channelLink.style.marginRight = "10px";
-      div.append(channelLink, contentDiv, deleteBtn);
+      channelImgWrapper.append(channelLink);
+
+      div.append(channelImgWrapper, contentDiv, deleteBtn);
     }
   }
 

@@ -1549,16 +1549,15 @@ async function checkBanners(prevSeenBannerNos = [], isPaused, isBannerPaused) {
   return { newStatus: prevSeenBannerNos, notifications }; // 오류 시 이전 상태 유지
 }
 
-function createBannerNotification(notificationObject) {
-  const { id, ad, imageUrl, title, subCopy, scheduledDate } =
-    notificationObject;
+function createBannerNotification(banner) {
+  const { bannerNo, ad, imageUrl, title, subCopy, scheduledDate } = banner;
 
   let messageContent = "";
 
   if (ad) messageContent += "[광고]";
   messageContent += `${title}\n${subCopy}\n${scheduledDate}`;
 
-  chrome.notifications.create(id, {
+  chrome.notifications.create(`banner-${bannerNo}`, {
     type: "basic",
     iconUrl: imageUrl || "icon_128.png",
     title: `📢 치지직 배너 안내`,
