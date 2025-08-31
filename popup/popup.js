@@ -115,7 +115,7 @@ async function checkLoginStatus() {
   const settingsBtn = document.getElementById("settings-btn");
   if (settingsBtn) {
     settingsBtn.addEventListener("click", () => {
-      settingsWrapper.style.display = "block";
+      settingsWrapper.style.display = "flex";
     });
   }
 
@@ -188,6 +188,37 @@ function initializeAllToggles() {
     { toggleId: "community-pause-toggle", storageKey: "isCommunityPaused" },
     { toggleId: "chzzk-lounge-pause-toggle", storageKey: "isLoungePaused" },
     { toggleId: "chzzk-banner-pause-toggle", storageKey: "isBannerPaused" },
+    { toggleId: "live-keep-pause-toggle", storageKey: "isLiveKeepPaused" },
+    {
+      toggleId: "category-keep-pause-toggle",
+      storageKey: "isCategoryKeepPaused",
+    },
+    {
+      toggleId: "live-title-keep-pause-toggle",
+      storageKey: "isLiveTitleKeepPaused",
+    },
+    {
+      toggleId: "watch-party-keep-pause-toggle",
+      storageKey: "isWatchPartyKeepPaused",
+    },
+    { toggleId: "drops-keep-pause-toggle", storageKey: "isDropsKeepPaused" },
+    {
+      toggleId: "restrict-keep-pause-toggle",
+      storageKey: "isRestrictKeepPaused",
+    },
+    { toggleId: "video-keep-pause-toggle", storageKey: "isVideoKeepPaused" },
+    {
+      toggleId: "community-keep-pause-toggle",
+      storageKey: "isCommunityKeepPaused",
+    },
+    {
+      toggleId: "chzzk-lounge-keep-pause-toggle",
+      storageKey: "isLoungeKeepPaused",
+    },
+    {
+      toggleId: "chzzk-banner-keep-pause-toggle",
+      storageKey: "isBannerKeepPaused",
+    },
   ];
 
   // 2. 배열을 순회하며 각 설정에 대해 토글을 설정합니다.
@@ -216,6 +247,15 @@ function setupToggle(toggleId, storageKey) {
     const isPaused = !event.target.checked;
     // 동적 키를 사용하여 올바른 스토리지 키에 값을 저장
     chrome.storage.local.set({ [storageKey]: isPaused });
+
+    if (storageKey.includes("Keep")) {
+      const newToggleId = toggleId.replace("-keep", "");
+      const newToggleElement = document.getElementById(newToggleId);
+      const newStorageKey = storageKey.replace("Keep", "");
+
+      chrome.storage.local.set({ [newStorageKey]: isPaused });
+      newToggleElement.checked = !isPaused;
+    }
   });
 }
 
@@ -920,11 +960,8 @@ function createNotificationItem(item, liveStatusMap) {
         attachWrapper.appendChild(img);
       });
 
-      if (isCurrentlyLive) {
-        attachWrapper.style.gap = "3px";
-      }
-
       messageDiv.append(attachWrapper);
+      messageDiv.style.lineHeight = "13px";
     } else {
       // 마이그레이션 fallback
       const content = document.createTextNode(
@@ -1109,7 +1146,7 @@ function createNotificationItem(item, liveStatusMap) {
     const subCopy = document.createElement("div");
     subCopy.textContent = item.subCopy;
     subCopy.style.marginBottom = "4px";
-    subCopy.style.fontSize = "13px";
+    subCopy.style.fontSize = "12px";
     subCopy.style.color = "#666";
 
     const scheduledDate = document.createElement("strong");

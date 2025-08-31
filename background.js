@@ -30,6 +30,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // --- 마이그레이션 로직 ---
   // 설치 또는 업데이트 시에만 실행
   if (details.reason === "install" || details.reason === "update") {
+    const { migrated_v2 } = await chrome.storage.local.get("migrated_v2");
+    if (migrated_v2) await chrome.storage.local.remove("migrated_v2");
+
     const { migrated_v3 } = await chrome.storage.local.get("migrated_v3");
     if (!migrated_v3) {
       const { notificationHistory = [] } = await chrome.storage.local.get(
@@ -173,6 +176,53 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       if (changed) {
         dataToSave.notificationHistory = notificationHistory;
         dataToSave.liveStatus = liveStatus;
+      }
+      await chrome.storage.local.set(dataToSave);
+    }
+
+    const { is_banner_id_migrated } = await chrome.storage.local.get(
+      "is_banner_id_migrated"
+    );
+    if (!is_banner_id_migrated) {
+      let { notificationHistory = [] } = await chrome.storage.local.get(
+        "notificationHistory"
+      );
+
+      await chrome.storage.local.remove("seenBanners");
+
+      const seenBanners = [];
+      let changed = false;
+
+      const updatedHistory = notificationHistory.map((item) => {
+        const idParts = item.id.split("-");
+        if (
+          item.type === "BANNER" &&
+          idParts.length === 2 &&
+          item.scheduledDate
+        ) {
+          const newId = `banner-${item.title}-${item.imageUrl}-${item.scheduledDate}`;
+
+          if (item.id !== newId) {
+            item.id = newId;
+
+            seenBanners.push({
+              imageUrl: item.imageUrl,
+              scheduledDate: item.scheduledDate,
+              title: item.title,
+            });
+
+            changed = true;
+          }
+        }
+        return item;
+      });
+
+      notificationHistory = updatedHistory;
+
+      const dataToSave = { is_banner_id_migrated: true };
+      if (changed) {
+        dataToSave.notificationHistory = notificationHistory;
+        dataToSave.seenBanners = seenBanners;
       }
       await chrome.storage.local.set(dataToSave);
     }
@@ -341,8 +391,19 @@ async function checkFollowedChannels() {
       "isCommunityPaused",
       "isLoungePaused",
       "isBannerPaused",
+      "isLiveKeepPaused",
+      "isCategoryKeepPaused",
+      "isLiveTitleKeepPaused",
+      "isRestrictKeepPaused",
+      "isWatchPartyKeepPaused",
+      "isDropsKeepPaused",
+      "isVideoKeepPaused",
+      "isCommunityKeepPaused",
+      "isLoungeKeepPaused",
+      "isBannerKeepPaused",
     ]);
     const isPaused = prevState.isPaused || false;
+
     const isLivePaused = prevState.isLivePaused || false;
     const isCategoryPaused = prevState.isCategoryPaused || false;
     const isLiveTitlePaused = prevState.isLiveTitlePaused || false;
@@ -353,6 +414,17 @@ async function checkFollowedChannels() {
     const isCommunityPaused = prevState.isCommunityPaused || false;
     const isLoungePaused = prevState.isLoungePaused || false;
     const isBannerPaused = prevState.isBannerPaused || false;
+
+    const isLiveKeepPaused = prevState.isLiveKeepPaused || false;
+    const isCategoryKeepPaused = prevState.isCategoryKeepPaused || false;
+    const isLiveTitleKeepPaused = prevState.isLiveTitleKeepPaused || false;
+    const isRestrictKeepPaused = prevState.isRestrictKeepPaused || false;
+    const isWatchPartyKeepPaused = prevState.isWatchPartyKeepPaused || false;
+    const isDropsKeepPaused = prevState.isDropsKeepPaused || false;
+    const isVideoKeepPaused = prevState.isVideoKeepPaused || false;
+    const isCommunityKeepPaused = prevState.isCommunityKeepPaused || false;
+    const isLoungeKeepPaused = prevState.isLoungeKeepPaused || false;
+    const isBannerKeepPaused = prevState.isBannerKeepPaused || false;
 
     // 1. 모든 확인 작업을 병렬로 실행하고, "새로운 알림 내역"과 "새로운 상태"를 반환받음
     const results = await Promise.all([
@@ -365,7 +437,13 @@ async function checkFollowedChannels() {
         isLiveTitlePaused,
         isRestrictPaused,
         isWatchPartyPaused,
-        isDropsPaused
+        isDropsPaused,
+        isLiveKeepPaused,
+        isCategoryKeepPaused,
+        isLiveTitleKeepPaused,
+        isRestrictKeepPaused,
+        isWatchPartyKeepPaused,
+        isDropsKeepPaused
       ),
       checkCommunityPosts(
         followingList,
@@ -373,6 +451,7 @@ async function checkFollowedChannels() {
         notificationEnabledChannels,
         isPaused,
         isCommunityPaused,
+        isCommunityKeepPaused,
         prevState.notificationHistory
       ),
       checkUploadedVideos(
@@ -380,10 +459,21 @@ async function checkFollowedChannels() {
         notificationEnabledChannels,
         prevState.notificationHistory,
         isPaused,
-        isVideoPaused
+        isVideoPaused,
+        isVideoKeepPaused
       ),
-      checkLoungePosts(prevState.loungeStatus, isPaused, isLoungePaused),
-      checkBanners(prevState.seenBanners, isPaused, isBannerPaused),
+      checkLoungePosts(
+        prevState.loungeStatus,
+        isPaused,
+        isLoungePaused,
+        isLoungeKeepPaused
+      ),
+      checkBanners(
+        prevState.seenBanners,
+        isPaused,
+        isBannerPaused,
+        isBannerKeepPaused
+      ),
     ]);
 
     // 2. 각 작업의 결과를 취합
@@ -456,7 +546,13 @@ async function checkLiveStatus(
   isLiveTitlePaused,
   isRestrictPaused,
   isWatchPartyPaused,
-  isDropsPaused
+  isDropsPaused,
+  isLiveKeepPaused,
+  isCategoryKeepPaused,
+  isLiveTitleKeepPaused,
+  isRestrictKeepPaused,
+  isWatchPartyKeepPaused,
+  isDropsKeepPaused
 ) {
   const newLiveStatus = {};
   const notifications = [];
@@ -502,7 +598,11 @@ async function checkLiveStatus(
       const currentpaidPromotion = liveContent?.paidPromotion;
 
       // --- 1. 방송 시작 이벤트 처리 ---
-      if (!wasLive && channel.personalData.following.notification) {
+      if (
+        !wasLive &&
+        !isLiveKeepPaused &&
+        channel.personalData.following.notification
+      ) {
         notifications.push(createLiveObject(channel, liveContent, isPrime));
         if (!isPaused && !isLivePaused) {
           createLiveNotification(channel, liveContent, isPrime);
@@ -517,7 +617,8 @@ async function checkLiveStatus(
           currentCategory !== prevCategory &&
           prevLiveTitle &&
           currentLiveTitle &&
-          currentLiveTitle !== prevLiveTitle
+          currentLiveTitle !== prevLiveTitle &&
+          !(isCategoryKeepPaused || isLiveTitleKeepPaused)
         ) {
           const notificationObject = createCategoryAndLiveTitleChangeObject(
             channel,
@@ -542,7 +643,8 @@ async function checkLiveStatus(
           if (
             prevCategory &&
             currentCategory &&
-            currentCategory !== prevCategory
+            currentCategory !== prevCategory &&
+            !isCategoryKeepPaused
           ) {
             const notificationObject = createCategoryChangeObject(
               channel,
@@ -563,7 +665,8 @@ async function checkLiveStatus(
           if (
             prevLiveTitle &&
             currentLiveTitle &&
-            currentLiveTitle !== prevLiveTitle
+            currentLiveTitle !== prevLiveTitle &&
+            !isLiveTitleKeepPaused
           ) {
             const notificationObject = createLiveTitleChangeObject(
               channel,
@@ -581,7 +684,7 @@ async function checkLiveStatus(
             }
           }
           // 4. 19세 연령 제한 변경 알림
-          if (currentAdultMode !== prevAdultMode) {
+          if (currentAdultMode !== prevAdultMode && !isRestrictKeepPaused) {
             const notificationObject = createLiveAdultChangeObject(
               channel,
               currentAdultMode,
@@ -599,7 +702,7 @@ async function checkLiveStatus(
             }
           }
           // 5. 같이보기 설정 알림
-          if (currentWatchParty !== prevWatchParty) {
+          if (currentWatchParty !== prevWatchParty && !isWatchPartyKeepPaused) {
             const notificationObject = createLiveWatchPartyObject(
               channel,
               liveStatusData.content
@@ -614,7 +717,7 @@ async function checkLiveStatus(
             }
           }
           // 6. 드롭스 설정 변경 알림
-          if (currentDrops !== prevDrops) {
+          if (currentDrops !== prevDrops && !isDropsKeepPaused) {
             const notificationObject = createLiveDropsObject(
               channel,
               liveStatusData.content
@@ -677,6 +780,7 @@ async function checkCommunityPosts(
   notificationEnabledChannels,
   isPaused,
   isCommunityPaused,
+  isCommunityKeepPaused,
   notificationHistory = [] // 기존 알림 내역을 인자로 받음
 ) {
   const newPostStatus = { ...prevPostStatus };
@@ -728,7 +832,7 @@ async function checkCommunityPosts(
           getComparableAttachesString(latestPost.attaches) !==
             getComparableAttachesString(lastSeenPost.attaches));
 
-      if (isNewPost) {
+      if (isNewPost && !isCommunityKeepPaused) {
         // --- 1. 새로운 글 처리 ---
         const postDate = parseChzzkDate(latestPost.createdDate);
         const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
@@ -771,7 +875,12 @@ async function checkCommunityPosts(
 }
 
 // *** 새 라운지 글 확인 함수 ***
-async function checkLoungePosts(prevPostStatus = {}, isPaused, isLoungePaused) {
+async function checkLoungePosts(
+  prevPostStatus = {},
+  isPaused,
+  isLoungePaused,
+  isLoungeKeepPaused
+) {
   const newPostStatus = { ...prevPostStatus };
   const notifications = [];
   const boardNumbers = [1, 2, 17, 3, 16]; // 공지사항, 업데이트, 같이보기, 이벤트, 콘텐츠 제작지원
@@ -785,7 +894,11 @@ async function checkLoungePosts(prevPostStatus = {}, isPaused, isLoungePaused) {
     const lastSeenPostId =
       prevPostStatus[`chzzk-lounge-${latestPost.boardId}`] || null;
 
-    if (latestPost && latestPost.feedId !== lastSeenPostId) {
+    if (
+      latestPost &&
+      latestPost.feedId !== lastSeenPostId &&
+      !isLoungeKeepPaused
+    ) {
       const postDate = parseChzzkDate(latestPost.timestamp);
       const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
 
@@ -811,7 +924,8 @@ async function checkUploadedVideos(
   notificationEnabledChannels,
   notificationHistory = [],
   isPaused,
-  isVideoPaused
+  isVideoPaused,
+  isVideoKeepPaused
 ) {
   const newVideoStatus = { ...prevVideoStatus };
   const notifications = [];
@@ -830,7 +944,8 @@ async function checkUploadedVideos(
         // --- 1. 새로운 동영상 확인 ---
         if (
           notificationEnabledChannels.has(channel.channelId) &&
-          videoNo > lastSeenVideoNo
+          videoNo > lastSeenVideoNo &&
+          !isVideoKeepPaused
         ) {
           notifications.push(createVideoObject(video));
           if (!isPaused && !isVideoPaused) {
@@ -1510,11 +1625,13 @@ async function checkBanners(prevSeenBanners = [], isPaused, isBannerPaused) {
     if (data.code === 200 && data.content?.banners) {
       const currentBanners = data.content.banners;
       const seenSet = new Set(
-        prevSeenBanners.map((b) => `${b.bannerNo}-${b.scheduledDate}`)
+        prevSeenBanners.map(
+          (b) => `${b.title}-${b.imageUrl}-${b.scheduledDate}`
+        )
       );
 
       for (const banner of currentBanners) {
-        const bannerKey = `${banner.bannerNo}-${banner.scheduledDate}`;
+        const bannerKey = `${banner.title}-${banner.imageUrl}-${banner.scheduledDate}`;
 
         if (!seenSet.has(bannerKey)) {
           notifications.push(createBannerObject(banner));
@@ -1525,7 +1642,8 @@ async function checkBanners(prevSeenBanners = [], isPaused, isBannerPaused) {
       }
 
       const newSeenBanners = currentBanners.map((b) => ({
-        bannerNo: b.bannerNo,
+        title: b.title,
+        imageUrl: b.imageUrl,
         scheduledDate: b.scheduledDate,
       }));
 
@@ -1538,14 +1656,14 @@ async function checkBanners(prevSeenBanners = [], isPaused, isBannerPaused) {
 }
 
 function createBannerNotification(banner) {
-  const { bannerNo, ad, imageUrl, title, subCopy, scheduledDate } = banner;
+  const { ad, imageUrl, title, subCopy, scheduledDate } = banner;
 
   let messageContent = "";
 
   if (ad) messageContent += "[광고]";
   messageContent += `${title}\n${subCopy}\n${scheduledDate}`;
 
-  chrome.notifications.create(`banner-${bannerNo}`, {
+  chrome.notifications.create(`banner-${title}-${imageUrl}-${scheduledDate}`, {
     type: "basic",
     iconUrl: imageUrl || "icon_128.png",
     title: `📢 치지직 배너 안내`,
@@ -1565,7 +1683,7 @@ function createBannerObject(banner) {
     scheduledDate,
   } = banner;
 
-  const notificationId = `banner-${bannerNo}`;
+  const notificationId = `banner-${title}-${imageUrl}-${scheduledDate}`;
 
   return {
     id: notificationId,
