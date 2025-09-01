@@ -943,7 +943,7 @@ function createNotificationItem(item, liveStatusMap) {
           if (item.attachLayout === "layout-single-big") {
             maxWidth = 250;
           } else if (item.attachLayout === "layout-double-medium") {
-            maxWidth = 155;
+            maxWidth = 160;
           }
           if (ratio < 0.3) {
             img.style.aspectRatio = `${dimensions.width} / ${dimensions.height}`;
@@ -967,6 +967,7 @@ function createNotificationItem(item, liveStatusMap) {
       const content = document.createTextNode(
         item.excerpt || makeExcerpt(item.content)
       );
+      messageDiv.style.lineHeight = "14px";
       messageDiv.append(content);
     }
   } else if (item.type === "LIVE") {
@@ -1141,18 +1142,16 @@ function createNotificationItem(item, liveStatusMap) {
     adSpan.textContent = "광고";
 
     const title = document.createElement("strong");
+    title.className = "banner-title";
     title.textContent = item.title;
 
     const subCopy = document.createElement("div");
+    subCopy.className = "banner-subcopy";
     subCopy.textContent = item.subCopy;
-    subCopy.style.marginBottom = "4px";
-    subCopy.style.fontSize = "12px";
-    subCopy.style.color = "#666";
 
     const scheduledDate = document.createElement("strong");
+    scheduledDate.className = "banner-scheduled-date";
     scheduledDate.textContent = item.scheduledDate;
-    scheduledDate.style.color = "#1bb373";
-    scheduledDate.style.fontSize = "12px";
 
     const span = document.createElement("span");
     span.className = "banner";

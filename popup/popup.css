@@ -1,5 +1,5 @@
 body {
-  width: 400px;
+  width: 410px;
   padding: 1px;
 }
 
@@ -9,7 +9,7 @@ body {
 
 #status-wrapper {
   border-radius: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-weight: bold;
 }
 
@@ -54,6 +54,7 @@ body {
   color: #c62828;
   cursor: pointer;
   font-family: inherit;
+  user-select: none;
 }
 
 #controls-wrapper {
@@ -102,11 +103,12 @@ body {
   width: 85%;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 9px 13px;
+  padding: 8px 12px;
 }
 
 #settings-btn {
   cursor: pointer;
+  user-select: none;
 }
 
 #settings-wrapper h1 {
@@ -228,7 +230,7 @@ input:checked + .slider:before {
 }
 
 #notification-center {
-  margin-top: 6px;
+  margin-top: 5px;
   border-top: 1px solid #eee;
   padding-top: 5px;
 }
@@ -266,7 +268,7 @@ input:checked + .slider:before {
   padding: 2px 4px;
   cursor: pointer;
   color: #555;
-  font-family: inherit;
+  user-select: none;
   transition: all 0.3s ease-in-out;
 }
 
@@ -287,6 +289,7 @@ input:checked + .slider:before {
 #mark-all-delete-btn {
   background-color: #e63d3d4f;
   border: 1px solid #e63d3d5e;
+  user-select: none;
   transition: all 0.3s ease-in-out;
 }
 
@@ -297,14 +300,14 @@ input:checked + .slider:before {
 }
 
 #notification-list {
-  height: 432px;
+  height: 438px;
   overflow-y: auto; /* 내용이 많으면 스크롤 */
 }
 
 .notification-item {
   display: flex;
   align-items: center;
-  padding: 8px 4px;
+  padding: 5px 4px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -327,17 +330,33 @@ input:checked + .slider:before {
 
 .banner-wrapper {
   display: flex;
-  gap: 1px;
+  gap: 2px;
   justify-content: flex-start;
   align-items: center;
   margin-left: 6px;
 }
 
 .banner {
-  width: 183px;
+  width: 185px;
   line-height: normal;
   font-size: 14px;
   letter-spacing: -1px;
+}
+
+.banner-subcopy {
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: rgb(102, 102, 102);
+}
+
+.banner-scheduled-date {
+  color: rgb(27, 179, 115);
+  font-size: 12px;
+}
+
+.ad-banner {
+  font-size: 11px;
+  margin: auto;
 }
 
 .layout-single-big img {
@@ -351,7 +370,7 @@ input:checked + .slider:before {
 .layout-double-medium img {
   display: block;
   margin-top: 3px;
-  max-width: 155px;
+  max-width: 160px;
   border-radius: 6px;
   object-fit: cover;
 }
@@ -385,6 +404,7 @@ input:checked + .slider:before {
   width: 35px;
   height: 35px;
   margin-right: 5px;
+  user-select: none;
 }
 
 .channel-img-wrapper {
@@ -400,6 +420,7 @@ input:checked + .slider:before {
   width: 35px;
   height: 35px;
   margin-right: 5px;
+  user-select: none;
 }
 
 .empty-channel-img {
@@ -522,6 +543,7 @@ input:checked + .slider:before {
   cursor: pointer;
   color: #aaa;
   padding: 5px;
+  user-select: none;
   transition: all 0.3s ease-in-out;
 }
 
@@ -538,10 +560,10 @@ input:checked + .slider:before {
 
 #notification-check-wrapper {
   display: none;
-  height: 581px;
-  width: 400px;
+  height: 582px;
+  width: 411px;
   position: absolute;
-  top: 10px;
+  top: 8px;
   z-index: 1;
   background-color: #ffffff87;
   justify-content: center;
@@ -597,6 +619,7 @@ input:checked + .slider:before {
   height: 15px;
   line-height: 13px;
   cursor: pointer;
+  user-select: none;
   transition: all 0.3s ease-in-out;
 }
 
@@ -616,6 +639,7 @@ input:checked + .slider:before {
   backdrop-filter: blur(2px);
   box-shadow: 0px 0px 5px 3px #beeefaa6;
   font-size: 10px;
+  user-select: none;
   cursor: pointer;
 }
 
@@ -631,6 +655,7 @@ input:checked + .slider:before {
   border: 1px solid #ccc;
   background-color: #f0f0f0;
   cursor: pointer;
+  user-select: none;
   width: fit-content;
 }
 
