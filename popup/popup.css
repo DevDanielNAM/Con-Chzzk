@@ -325,7 +325,7 @@ input:checked + .slider:before {
   display: flex;
   gap: 2px;
   flex-wrap: wrap;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .banner-wrapper {
@@ -661,4 +661,119 @@ input:checked + .slider:before {
 
 #test-notification-btn:hover {
   background-color: #e0e0e0;
+}
+
+#display-limit-settings-wrapper {
+  display: none;
+  height: 582px;
+  width: 411px;
+  position: absolute;
+  top: 8px;
+  z-index: 1;
+  background-color: #ffffff87;
+  backdrop-filter: blur(1px);
+}
+
+#display-limit-settings-btn {
+  display: flex;
+  align-items: flex-end;
+  margin-left: 3px;
+  cursor: pointer;
+}
+
+.display-limit-settings {
+  display: flex;
+  position: absolute;
+  backdrop-filter: blur(2px);
+  width: 185px;
+  height: 130px;
+  background-color: rgba(255, 255, 255, 0.37);
+  box-shadow: rgba(197, 197, 197, 0.44) 0px 0px 5px 1px;
+  left: 27%;
+  top: 13%;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+}
+
+.display-limit-wrapper {
+  width: 90%;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin: 5px auto;
+}
+
+.display-limit-settings > h3 {
+  margin-top: 25px;
+}
+
+#display-limit-input {
+  margin-left: 3px;
+  text-align: center;
+  border-radius: 5px;
+  border: none;
+  padding: 3px;
+  box-shadow: rgba(197, 197, 197, 0.44) 0px 0px 5px 1px;
+}
+
+#display-limit-input:invalid {
+  border: 2px solid red;
+  border-radius: 5px;
+}
+
+#limit-info {
+  text-align: center;
+  margin: 5px auto;
+  background-color: rgb(250 140 140 / 60%);
+  box-shadow: rgba(197, 197, 197, 0.44) 0px 0px 5px 1px;
+  padding: 3px;
+  border-radius: 5px;
+  backdrop-filter: blur(1px);
+  color: #c71515;
+}
+
+#display-limit-confirm-btn {
+  width: fit-content;
+  padding: 5px;
+  border-radius: 5px;
+  background-color: #ffffffb5;
+  backdrop-filter: blur(2px);
+  box-shadow: 0px 0px 5px 3px #beeefaa6;
+  font-size: 12px;
+  user-select: none;
+  cursor: pointer;
+  border: none;
+}
+
+#display-limit-confirm-btn:hover {
+  background-color: #ffffff;
+}
+
+.close-display-settings-btn {
+  position: absolute;
+  right: 7px;
+  top: 5px;
+  color: red;
+  font-size: 15px;
+  font-weight: bold;
+  border-radius: 5px;
+  backdrop-filter: blur(1px);
+  box-shadow: 0px 0px 14px 3px #beeefaa6;
+  background-color: #ffffff66;
+  padding: 3px;
+  width: 15px;
+  height: 15px;
+  line-height: 13px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease-in-out;
+}
+
+.close-display-settings-btn:hover {
+  background-color: #dd5e5eb5;
+  color: white;
 }

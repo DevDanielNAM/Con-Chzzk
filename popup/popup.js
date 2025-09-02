@@ -1,4 +1,4 @@
-const HISTORY_LIMIT = 100;
+const HISTORY_LIMIT = 150;
 const GET_USER_STATUS_API =
   "https://comm-api.game.naver.com/nng_main/v1/user/getUserStatus";
 let currentFilter = "ALL";
@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   checkLoginStatus();
   initializeAllToggles();
   setupNotificationChecker();
+  initializeDisplayLimitSettings();
   await renderNotificationCenter();
 
   chrome.runtime.sendMessage({ type: "UPDATE_BADGE" });
@@ -327,6 +328,72 @@ function showOSNotificationGuide() {
   });
 }
 
+// *** DisplayLimit 설정 초기화 함수 ***
+function initializeDisplayLimitSettings() {
+  const displayLimitSettingsWrapper = document.getElementById(
+    "display-limit-settings-wrapper"
+  );
+  const displayLimitInput = document.getElementById("display-limit-input");
+  const displayLimitConfrimBtn = document.getElementById(
+    "display-limit-confirm-btn"
+  );
+  const displayLimitSettingsBtn = document.getElementById(
+    "display-limit-settings-btn"
+  );
+  const closeDispalySettingsBtn = document.querySelector(
+    ".close-display-settings-btn"
+  );
+
+  // 저장된 값을 input에 표시하는 함수
+  async function loadDisplayLimit() {
+    const { displayLimit = 100 } = await chrome.storage.local.get(
+      "displayLimit"
+    );
+    displayLimitInput.value = displayLimit;
+  }
+  loadDisplayLimit(); // 초기 로드
+
+  // 설정 창 열기 버튼
+  displayLimitSettingsBtn.onclick = () => {
+    displayLimitSettingsWrapper.style.display = "block";
+  };
+
+  // 설정 창 닫기 버튼
+  if (closeDispalySettingsBtn) {
+    closeDispalySettingsBtn.onclick = () => {
+      displayLimitSettingsWrapper.style.display = "none";
+    };
+  }
+
+  // input 값 유효성 검사
+  displayLimitInput.oninput = () => {
+    const newLimit = parseInt(displayLimitInput.value, 10);
+    const minValue = 10;
+    const maxValue = 500;
+    displayLimitConfrimBtn.disabled =
+      newLimit < minValue || newLimit > maxValue;
+  };
+
+  displayLimitConfrimBtn.onclick = async () => {
+    let newLimit = parseInt(displayLimitInput.value, 10);
+
+    if (!isNaN(newLimit)) {
+      const minValue = 10;
+      const maxValue = 500;
+      newLimit = Math.max(minValue, Math.min(newLimit, maxValue));
+
+      await chrome.storage.local.set({ displayLimit: newLimit });
+      displayLimitInput.value = newLimit;
+      displayLimitSettingsWrapper.style.display = "none";
+
+      await renderNotificationCenter(); // 필터 유지한 채로 새로고침
+      chrome.runtime.sendMessage({ type: "UPDATE_BADGE" });
+    } else {
+      loadDisplayLimit(); // 유효하지 않은 값이면 저장된 값으로 복원
+    }
+  };
+}
+
 // "YYYYMMDDHHmmss" 지원 파서
 function parseTimestampFormat(timestamp) {
   if (typeof timestamp === "string" && /^\d{14}$/.test(timestamp)) {
@@ -396,25 +463,32 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
   const history = data.notificationHistory || [];
   const liveStatusMap = data.liveStatus || {}; // 최신 라이브 상태 맵
 
+  // 사용자가 설정한 표시 개수를 가져옴
+  const { displayLimit = 100 } = await chrome.storage.local.get("displayLimit");
+
+  // 전체 내역에서 사용자가 원하는 개수만큼만 잘라냄
+  const displayHistory = history.slice(0, displayLimit);
+
   // *** 현재 필터 상태에 따라 보여줄 목록을 결정 ***
-  let filteredHistory = history;
+  let filteredHistory = displayHistory;
   if (currentFilter !== "ALL") {
     if (currentFilter === "CATEGORY/LIVETITLE") {
-      filteredHistory = history.filter(
+      filteredHistory = displayHistory.filter(
         (item) =>
           item.type === "CATEGORY/LIVETITLE" ||
           item.type === "CATEGORY" ||
           item.type === "LIVETITLE"
       );
     } else {
-      filteredHistory = history.filter((item) => item.type === currentFilter);
+      filteredHistory = displayHistory.filter(
+        (item) => item.type === currentFilter
+      );
     }
   }
 
   if (centerHeader) {
-    centerHeader.innerHTML = `최신 알림 <span>(${filteredHistory.length}/${HISTORY_LIMIT})</span>`;
+    centerHeader.innerHTML = `최신 알림 <span>(${filteredHistory.length}/${displayLimit})</span>`;
   }
-
   // *** 옵션에 따라 스크롤을 초기화하도록 변경 ***
   if (options.resetScroll) {
     listElement.scrollTop = 0;
@@ -423,7 +497,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
   // 2. 리스트 초기화
   listElement.innerHTML = "";
 
-  if (history.length === 0) {
+  if (displayHistory.length === 0) {
     listElement.appendChild(noNotificationsElement);
 
     if (!noNotificationsElement) {
@@ -469,7 +543,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
 
     const historySet = new Set();
 
-    history.slice().filter((item) => historySet.add(item.type));
+    displayHistory.slice().filter((item) => historySet.add(item.type));
 
     historySet.forEach((item) => {
       switch (item) {
@@ -607,30 +681,35 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     const data = await chrome.storage.local.get("notificationHistory");
     const history = data.notificationHistory || [];
 
-    const updatedHistory = history.map((item) => {
-      let shouldMarkAsRead = false;
+    const { displayLimit = 100 } = await chrome.storage.local.get(
+      "displayLimit"
+    );
 
-      if (currentFilter === "ALL") {
-        shouldMarkAsRead = true;
-      } else if (currentFilter === "CATEGORY/LIVETITLE") {
-        if (
-          item.type === "CATEGORY/LIVETITLE" ||
-          item.type === "CATEGORY" ||
-          item.type === "LIVETITLE"
-        ) {
+    const updatedHistory = history.map((item, index) => {
+      if (index < displayLimit) {
+        let shouldMarkAsRead = false;
+
+        if (currentFilter === "ALL") {
           shouldMarkAsRead = true;
+        } else if (currentFilter === "CATEGORY/LIVETITLE") {
+          if (
+            item.type === "CATEGORY/LIVETITLE" ||
+            item.type === "CATEGORY" ||
+            item.type === "LIVETITLE"
+          ) {
+            shouldMarkAsRead = true;
+          }
+        } else {
+          if (item.type === currentFilter) {
+            shouldMarkAsRead = true;
+          }
         }
-      } else {
-        if (item.type === currentFilter) {
-          shouldMarkAsRead = true;
+
+        if (shouldMarkAsRead) {
+          return { ...item, read: true };
         }
       }
-
-      if (shouldMarkAsRead) {
-        return { ...item, read: true };
-      } else {
-        return item;
-      }
+      return item;
     });
 
     await chrome.storage.local.set({ notificationHistory: updatedHistory });
@@ -644,21 +723,30 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     const data = await chrome.storage.local.get("notificationHistory");
     const history = data.notificationHistory || [];
 
+    const { displayLimit = 100 } = await chrome.storage.local.get(
+      "displayLimit"
+    );
+
     let updatedHistory;
 
     if (currentFilter === "ALL") {
-      updatedHistory = [];
+      updatedHistory = history.slice(displayLimit);
     } else {
-      if (currentFilter === "CATEGORY/LIVETITLE") {
-        updatedHistory = history.filter(
-          (item) =>
+      updatedHistory = history.filter((item, index) => {
+        if (index >= displayLimit) {
+          return true;
+        }
+
+        if (currentFilter === "CATEGORY/LIVETITLE") {
+          return (
             item.type !== "CATEGORY/LIVETITLE" &&
             item.type !== "CATEGORY" &&
             item.type !== "LIVETITLE"
-        );
-      } else {
-        updatedHistory = history.filter((item) => item.type !== currentFilter);
-      }
+          );
+        } else {
+          return item.type !== currentFilter;
+        }
+      });
     }
 
     await chrome.storage.local.set({ notificationHistory: updatedHistory });

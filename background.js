@@ -18,7 +18,7 @@ const CHECK_ALARM_NAME = "chzzkAllCheck";
 
 // *** 실행 잠금을 위한 전역 변수 ***
 let isChecking = false;
-const HISTORY_LIMIT = 100;
+const HISTORY_LIMIT = 500;
 
 // --- 확장 프로그램 설치 시 알람 생성 ---
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -260,8 +260,11 @@ async function updateUnreadCountBadge() {
   const data = await chrome.storage.local.get("notificationHistory");
   const history = data.notificationHistory || [];
 
+  const { displayLimit = 100 } = await chrome.storage.local.get("displayLimit");
+  const displayHistory = history.slice(0, displayLimit);
+
   // 'read: false'인 알림의 개수
-  const unreadCount = history.filter((item) => !item.read).length;
+  const unreadCount = displayHistory.filter((item) => !item.read).length;
 
   if (unreadCount > 0) {
     // 읽지 않은 알림이 있으면, 배지에 숫자를 표시
