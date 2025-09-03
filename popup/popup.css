@@ -544,12 +544,14 @@ input:checked + .slider:before {
   color: #aaa;
   padding: 5px;
   user-select: none;
-  transition: all 0.3s ease-in-out;
+  transform: scale(1);
+  transition: transform 0.3s ease-in-out, color 0.3s ease-in-out;
+  will-change: transform;
 }
 
 .mark-one-delete-btn:hover {
   color: rgba(243, 38, 38, 0.7);
-  scale: 1.2;
+  transform: scale(1.2);
 }
 
 #no-notifications {
@@ -669,6 +671,7 @@ input:checked + .slider:before {
   width: 411px;
   position: absolute;
   top: 8px;
+  left: 2%;
   z-index: 1;
   background-color: #ffffff87;
   backdrop-filter: blur(1px);
@@ -685,8 +688,8 @@ input:checked + .slider:before {
   display: flex;
   position: absolute;
   backdrop-filter: blur(2px);
-  width: 185px;
-  height: 130px;
+  width: 200px;
+  height: 145px;
   background-color: rgba(255, 255, 255, 0.37);
   box-shadow: rgba(197, 197, 197, 0.44) 0px 0px 5px 1px;
   left: 27%;
@@ -703,7 +706,7 @@ input:checked + .slider:before {
   gap: 10px;
   justify-content: center;
   align-items: center;
-  margin: 5px auto;
+  margin: 7px auto;
 }
 
 .display-limit-settings > h3 {
@@ -716,18 +719,26 @@ input:checked + .slider:before {
   border-radius: 5px;
   border: none;
   padding: 3px;
-  box-shadow: rgba(197, 197, 197, 0.44) 0px 0px 5px 1px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255), 0 0 0 4px rgb(197, 197, 197),
+    0 0 0 6px rgba(197, 197, 197, 0.06);
+  transition: box-shadow 0.2s ease-in-out;
 }
 
-#display-limit-input:invalid {
-  border: 2px solid red;
-  border-radius: 5px;
+#display-limit-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255), 0 0 0 4px rgb(38, 150, 255),
+    0 0 0 6px rgba(38, 150, 255, 0.06);
+}
+
+#display-limit-input.input-invalid {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255), 0 0 0 4px rgb(255, 0, 0),
+    0 0 0 6px rgba(255, 0, 0, 0.06);
 }
 
 #limit-info {
   text-align: center;
   margin: 5px auto;
-  background-color: rgb(250 140 140 / 60%);
+  background-color: rgb(248 167 167 / 22%);
   box-shadow: rgba(197, 197, 197, 0.44) 0px 0px 5px 1px;
   padding: 3px;
   border-radius: 5px;
@@ -745,11 +756,14 @@ input:checked + .slider:before {
   font-size: 12px;
   user-select: none;
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
+  transition: all 0.3s ease-in-out;
 }
 
 #display-limit-confirm-btn:hover {
   background-color: #ffffff;
+  border: 1px solid #00800057;
+  box-shadow: 0px 0px 5px 3px #71ffaea6;
 }
 
 .close-display-settings-btn {

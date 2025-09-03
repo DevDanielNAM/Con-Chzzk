@@ -362,16 +362,30 @@ function initializeDisplayLimitSettings() {
   if (closeDispalySettingsBtn) {
     closeDispalySettingsBtn.onclick = () => {
       displayLimitSettingsWrapper.style.display = "none";
+      displayLimitInput.classList.remove("input-invalid");
+      loadDisplayLimit();
     };
   }
 
   // input 값 유효성 검사
   displayLimitInput.oninput = () => {
-    const newLimit = parseInt(displayLimitInput.value, 10);
+    const value = displayLimitInput.value;
     const minValue = 10;
     const maxValue = 500;
-    displayLimitConfrimBtn.disabled =
-      newLimit < minValue || newLimit > maxValue;
+
+    if (value.trim() === "") {
+      displayLimitConfrimBtn.disabled = true;
+      displayLimitInput.classList.add("input-invalid");
+      return;
+    }
+
+    const newLimit = parseInt(value, 10);
+
+    const isValid =
+      !isNaN(newLimit) && newLimit >= minValue && newLimit <= maxValue;
+
+    displayLimitConfrimBtn.disabled = !isValid;
+    displayLimitInput.classList.toggle("input-invalid", !isValid);
   };
 
   displayLimitConfrimBtn.onclick = async () => {
@@ -588,6 +602,9 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
       }
     });
 
+    // 메모리에 fragment 생성
+    const fragment = document.createDocumentFragment();
+
     // 3. 각 알림 아이템을 HTML로 만들어 추가
     if (filteredHistory.length === 0) {
       currentFilter = "ALL";
@@ -601,8 +618,10 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
         )
         .forEach((item) => {
           const itemElement = createNotificationItem(item, liveStatusMap);
-          listElement.appendChild(itemElement);
+          fragment.appendChild(itemElement);
         });
+
+      listElement.replaceChildren(fragment);
     }
   }
 
