@@ -331,13 +331,39 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+// --- 재시도 로직을 포함한 fetch 헬퍼 함수 ---
+async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      if (!navigator.onLine) {
+        throw new Error("Network is offline");
+      }
+      const response = await fetch(url, options);
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      return response;
+    } catch (error) {
+      if (i === retries - 1) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)));
+    }
+  }
+}
+
 // --- 모든 확인 작업을 통합하고 일괄 처리 ---
 async function checkFollowedChannels() {
+  if (!navigator.onLine) {
+    console.warn("Network unavailable, verification skipped.");
+    isChecking = false;
+    return;
+  }
+
   if (isChecking) return;
   isChecking = true;
 
   try {
-    const response = await fetch(FOLLOW_API_URL);
+    const response = await fetchWithRetry(FOLLOW_API_URL);
     const data = await response.json();
 
     // *** 확인된 로그인 상태를 session 스토리지에 캐싱 ***
@@ -574,7 +600,7 @@ async function checkLiveStatus(
 
     if (isNowLive) {
       // 라이브 중인 채널의 상세 정보를 가져옴
-      const liveStatusResponse = await fetch(
+      const liveStatusResponse = await fetchWithRetry(
         `${LIVE_STATUS_API_PREFIX}${channelId}/live-status`
       );
       const liveStatusData = await liveStatusResponse.json();
@@ -584,7 +610,7 @@ async function checkLiveStatus(
       let isPrime = prevLiveStatus[channelId]?.isPrime || false;
 
       // 프라임 여부 확인
-      const channelInfoResponse = await fetch(
+      const channelInfoResponse = await fetchWithRetry(
         `https://api.chzzk.naver.com/service/v1/channels/${channelId}`
       );
       const channelInfoData = await channelInfoResponse.json();
@@ -936,7 +962,7 @@ async function checkUploadedVideos(
   let historyWasUpdated = false;
 
   try {
-    const response = await fetch(VIDEO_API_URL);
+    const response = await fetchWithRetry(VIDEO_API_URL);
     const data = await response.json();
 
     if (data.code === 200 && data.content?.data) {
@@ -1000,7 +1026,7 @@ async function checkUploadedVideos(
 async function getLatestCommunityPost(channelId) {
   try {
     const url = `${POST_API_URL_PREFIX}${channelId}/comments?limit=10&offset=0&orderType=DESC&pagingType=PAGE`;
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
     const data = await response.json();
 
     if (data.code === 200 && data.content?.comments?.data?.length > 0) {
@@ -1027,7 +1053,7 @@ async function getLatestCommunityPost(channelId) {
 async function getLatestLoungePost(boardNum) {
   try {
     const url = `${CHZZK_LOUNGE_API_URL_PREFIX}?boardId=${boardNum}`;
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
     const data = await response.json();
 
     if (data.code === 200 && data.content?.feeds?.length > 0) {
@@ -1622,7 +1648,7 @@ function createVideoObject(video) {
 async function checkBanners(prevSeenBanners = [], isPaused, isBannerPaused) {
   const notifications = [];
   try {
-    const response = await fetch(CHZZK_BANNER_API_URL);
+    const response = await fetchWithRetry(CHZZK_BANNER_API_URL);
     const data = await response.json();
 
     if (data.code === 200 && data.content?.banners) {
