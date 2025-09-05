@@ -17,48 +17,10 @@
     }
   }
 
-  /**
-   * 로그인 상태를 실시간으로 감시하고 background에 알리는 함수
-   */
-  function monitorLoginStatus() {
-    let previousLoginState = !!localStorage.getItem("userStatus.idhash");
-
-    // sessionStorage에 ID를 저장하는 로직
-    const STORAGE_KEY = "chzzkExt_loginMonitorId";
-    const intervalId = setInterval(() => {
-      try {
-        if (
-          typeof chrome === "undefined" ||
-          !chrome.runtime ||
-          !chrome.runtime.id
-        ) {
-          clearInterval(intervalId);
-          return;
-        }
-
-        const currentLoginState = !!localStorage.getItem("userStatus.idhash");
-
-        if (previousLoginState !== currentLoginState) {
-          chrome.runtime.sendMessage({ type: "LOGIN_STATE_CHANGED" });
-          previousLoginState = currentLoginState;
-        }
-      } catch (e) {
-        clearInterval(intervalId);
-      }
-    }, 2000);
-
-    // background.js가 찾아낼 수 있도록 타이머 ID를 저장
-    sessionStorage.setItem(STORAGE_KEY, intervalId);
-  }
-
   // 확장 프로그램 기능 시작
   chrome.storage.local.get("isPaused", (data) => {
     if (data.isPaused) {
       return;
-    }
-
-    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.id) {
-      monitorLoginStatus();
     }
   });
 })(); // 즉시 실행 함수 종료

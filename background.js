@@ -16,9 +16,50 @@ const CHECK_LIVE_PRIME_API_URL_PREFIX =
 
 const CHECK_ALARM_NAME = "chzzkAllCheck";
 
+const CHZZK_COOKIE_URL = "https://chzzk.naver.com";
+const AUTH_COOKIE_NAME = "NID_AUT";
+
 // *** 실행 잠금을 위한 전역 변수 ***
 let isChecking = false;
 const HISTORY_LIMIT = 500;
+
+// --- 초기 로그인 상태를 확인하고 아이콘을 설정하는 함수 ---
+async function checkInitialLoginStatus() {
+  try {
+    const cookie = await chrome.cookies.get({
+      url: CHZZK_COOKIE_URL,
+      name: AUTH_COOKIE_NAME,
+    });
+
+    if (cookie) {
+      chrome.action.setIcon({ path: "icon_128.png" });
+      chrome.action.setBadgeText({ text: "" });
+      checkFollowedChannels();
+    } else {
+      chrome.action.setIcon({ path: "icon_disabled.png" });
+      chrome.action.setBadgeText({ text: "X" });
+      chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
+    }
+  } catch (error) {
+    console.error("초기 쿠키 확인 중 오류:", error);
+  }
+}
+
+// --- 쿠키 변경을 실시간으로 감지하는 리스너 ---
+chrome.cookies.onChanged.addListener((changeInfo) => {
+  if (changeInfo.cookie.name !== AUTH_COOKIE_NAME) return;
+  if (changeInfo.removed) {
+    chrome.action.setIcon({ path: "icon_disabled.png" });
+    chrome.action.setBadgeText({ text: "X" });
+    chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
+    chrome.storage.session.set({ cachedLoginStatus: { isLoggedIn: false } });
+  } else {
+    chrome.action.setIcon({ path: "icon_128.png" });
+    chrome.action.setBadgeText({ text: "" });
+
+    checkFollowedChannels();
+  }
+});
 
 // --- 확장 프로그램 설치 시 알람 생성 ---
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -253,7 +294,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       console.warn("이전 타이머 정리 중 오류 발생:", error.message);
     }
   }
+  checkInitialLoginStatus();
 });
+
+// --- 브라우저가 시작될 때 초기 상태 확인 ---
+chrome.runtime.onStartup.addListener(checkInitialLoginStatus);
 
 // --- 읽지 않은 알림 수를 계산하여 아이콘 배지에 표시하는 함수 ---
 async function updateUnreadCountBadge() {
@@ -339,8 +384,6 @@ async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
         throw new Error("Network is offline");
       }
       const response = await fetch(url, options);
-      if (!response.ok)
-        throw new Error(`HTTP error! status: ${response.status}`);
       return response;
     } catch (error) {
       if (i === retries - 1) {
@@ -366,15 +409,21 @@ async function checkFollowedChannels() {
     const response = await fetchWithRetry(FOLLOW_API_URL);
     const data = await response.json();
 
+    const prevSession = (await chrome.storage.session.get("cachedLoginStatus"))
+      .cachedLoginStatus;
+
     // *** 확인된 로그인 상태를 session 스토리지에 캐싱 ***
     if (data.code === 200) {
-      const userStatusRes = await fetch(
-        "https://comm-api.game.naver.com/nng_main/v1/user/getUserStatus"
-      );
-      const userStatusData = await userStatusRes.json();
-      const nickname = userStatusData.content?.nickname;
-      const profileImageUrl = userStatusData.content?.profileImageUrl;
-
+      let nickname = prevSession?.nickname,
+        profileImageUrl = prevSession?.profileImageUrl;
+      if (!prevSession?.isLoggedIn) {
+        const userStatusRes = await fetchWithRetry(
+          "https://comm-api.game.naver.com/nng_main/v1/user/getUserStatus"
+        );
+        const userStatusData = await userStatusRes.json();
+        nickname = userStatusData.content?.nickname;
+        profileImageUrl = userStatusData.content?.profileImageUrl;
+      }
       chrome.storage.session.set({
         cachedLoginStatus: { isLoggedIn: true, nickname, profileImageUrl },
       });
@@ -583,41 +632,44 @@ async function checkLiveStatus(
   isWatchPartyKeepPaused,
   isDropsKeepPaused
 ) {
-  const newLiveStatus = {};
+  const newLiveStatus = { ...prevLiveStatus };
   const notifications = [];
-  const primeStatusUpdates = {};
 
-  for (const item of followingList) {
-    const { channel, streamer } = item;
-    const channelId = channel.channelId;
-    const wasLive = prevLiveStatus[channelId]?.live || false;
-    const prevCategory = prevLiveStatus[channelId]?.category || null;
-    const prevLiveTitle = prevLiveStatus[channelId]?.liveTitle || null;
-    const prevAdultMode = prevLiveStatus[channelId]?.adultMode || false;
-    const prevWatchParty = prevLiveStatus[channelId]?.watchParty || null;
-    const prevDrops = prevLiveStatus[channelId]?.drops || null;
-    const isNowLive = streamer.openLive;
+  const CONCURRENCY = 8;
+  const liveChannels = followingList.filter((item) => item.streamer.openLive);
 
-    if (isNowLive) {
+  for (let i = 0; i < liveChannels.length; i += CONCURRENCY) {
+    const batch = liveChannels.slice(i, i + CONCURRENCY);
+
+    const promises = batch.map(async (item) => {
+      const { channel } = item;
+      const channelId = channel.channelId;
+      const wasLive = prevLiveStatus[channelId]?.live || false;
+      const prevOpenDate = prevLiveStatus[channelId]?.openDate || null;
+      const prevCategory = prevLiveStatus[channelId]?.category || null;
+      const prevLiveTitle = prevLiveStatus[channelId]?.liveTitle || null;
+      const prevAdultMode = prevLiveStatus[channelId]?.adultMode || false;
+      const prevWatchParty = prevLiveStatus[channelId]?.watchParty || null;
+      const prevDrops = prevLiveStatus[channelId]?.drops || null;
+
       // 라이브 중인 채널의 상세 정보를 가져옴
-      const liveStatusResponse = await fetchWithRetry(
-        `${LIVE_STATUS_API_PREFIX}${channelId}/live-status`
-      );
+      const [liveStatusResponse, channelInfoResponse] = await Promise.all([
+        fetchWithRetry(`${LIVE_STATUS_API_PREFIX}${channelId}/live-status`),
+        fetchWithRetry(`${CHECK_LIVE_PRIME_API_URL_PREFIX}${channelId}`),
+      ]);
       const liveStatusData = await liveStatusResponse.json();
       const liveContent = liveStatusData.content;
-      if (!liveContent) continue; // 데이터 없으면 다음 채널로
+      if (!liveContent) {
+        throw new Error(`[${channelId}] 유효하지 않은 liveContent 응답`);
+      }
 
       let isPrime = prevLiveStatus[channelId]?.isPrime || false;
 
       // 프라임 여부 확인
-      const channelInfoResponse = await fetchWithRetry(
-        `https://api.chzzk.naver.com/service/v1/channels/${channelId}`
-      );
       const channelInfoData = await channelInfoResponse.json();
       isPrime = channelInfoData.content?.paidProductSaleAllowed || false;
 
-      primeStatusUpdates[channel.channelId] = isPrime;
-
+      const currentOpenDate = liveContent.openDate;
       const currentLiveId = `live-${channelId}-${liveContent?.openDate}`;
       const currentCategory = liveContent?.liveCategoryValue;
       const currentLiveTitle = liveContent?.liveTitle;
@@ -628,7 +680,7 @@ async function checkLiveStatus(
 
       // --- 1. 방송 시작 이벤트 처리 ---
       if (
-        !wasLive &&
+        (!wasLive || prevOpenDate !== currentOpenDate) &&
         !isLiveKeepPaused &&
         channel.personalData.following.notification
       ) {
@@ -763,20 +815,43 @@ async function checkLiveStatus(
         }
       }
 
-      newLiveStatus[channelId] = {
-        live: true,
-        currentLiveId: currentLiveId,
-        category: currentCategory,
-        liveTitle: currentLiveTitle,
-        adultMode: currentAdultMode,
-        watchParty: currentWatchParty,
-        drops: currentDrops,
-        paidPromotion: currentpaidPromotion,
-        isPrime: isPrime,
+      return {
+        channelId: channelId,
+        status: {
+          live: true,
+          openDate: currentOpenDate,
+          currentLiveId: currentLiveId,
+          category: currentCategory,
+          liveTitle: currentLiveTitle,
+          adultMode: currentAdultMode,
+          watchParty: currentWatchParty,
+          drops: currentDrops,
+          paidPromotion: currentpaidPromotion,
+          isPrime: isPrime,
+        },
       };
-    } else {
-      newLiveStatus[channelId] = {
+    });
+    const results = await Promise.allSettled(promises);
+
+    results.forEach((result) => {
+      if (result.status === "fulfilled") {
+        const { channelId, status } = result.value;
+        newLiveStatus[channelId] = status;
+      } else {
+        console.error("배치 처리 중 개별 채널 오류:", result.reason);
+      }
+    });
+  }
+  const liveChannelIds = new Set(
+    liveChannels.map((item) => item.channel.channelId)
+  );
+  // 라이브가 아닌 채널들의 상태를 '오프라인'으로 설정
+  followingList.forEach((item) => {
+    const currentChannelId = item.channel.channelId;
+    if (!liveChannelIds.has(currentChannelId)) {
+      newLiveStatus[currentChannelId] = {
         live: false,
+        openDate: null,
         currentLiveId: null,
         category: null,
         liveTitle: null,
@@ -787,7 +862,8 @@ async function checkLiveStatus(
         isPrime: false,
       };
     }
-  }
+  });
+
   return { newStatus: newLiveStatus, notifications };
 }
 
@@ -920,27 +996,23 @@ async function checkLoungePosts(
   const results = await Promise.all(postCheckPromises);
   for (const result of results) {
     const { latestPost } = result;
-    const lastSeenPostId =
-      prevPostStatus[`chzzk-lounge-${latestPost.boardId}`] || null;
+    if (latestPost) {
+      const lastSeenPostId =
+        prevPostStatus[`chzzk-lounge-${latestPost.boardId}`] || null;
 
-    if (
-      latestPost &&
-      latestPost.feedId !== lastSeenPostId &&
-      !isLoungeKeepPaused
-    ) {
-      const postDate = parseChzzkDate(latestPost.timestamp);
-      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      if (latestPost.feedId !== lastSeenPostId && !isLoungeKeepPaused) {
+        const postDate = parseChzzkDate(latestPost.timestamp);
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
 
-      // 작성된 지 24시간 이내인 글만 알림을 보냄
-      if (postDate > oneDayAgo) {
-        notifications.push(createLoungeObject(latestPost));
+        // 작성된 지 24시간 이내인 글만 알림을 보냄
+        if (postDate > oneDayAgo) {
+          notifications.push(createLoungeObject(latestPost));
 
-        if (!isPaused && !isLoungePaused) {
-          createLoungeNotification(latestPost);
+          if (!isPaused && !isLoungePaused) {
+            createLoungeNotification(latestPost);
+          }
         }
       }
-    }
-    if (latestPost) {
       newPostStatus[`chzzk-lounge-${latestPost.boardId}`] = latestPost.feedId;
     }
   }
@@ -1785,12 +1857,6 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // content.js로부터 로그인 상태 변경 신호를 받으면 즉시 상태 확인
-  if (request.type === "LOGIN_STATE_CHANGED") {
-    // 1분 알람을 기다리지 않고 즉시 함수를 실행
-    checkFollowedChannels();
-  }
-
   if (request.type === "UPDATE_BADGE") {
     updateUnreadCountBadge();
   }
