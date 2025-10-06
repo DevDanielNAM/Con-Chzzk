@@ -11,7 +11,44 @@
       <div id="status-login" class="status-box" style="display: none">
         <img id="login-profile" />
         <span id="login-id"></span>님은 콘치즈의 맛있는 알림과 연결 중!
-        <span id="test-btn">🔔 TEST</span>
+        <span id="test-btn"
+          ><svg
+            width="12"
+            height="12"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            xmlns:xlink="http://www.w3.org/1999/xlink"
+          >
+            <g clip-path="url(#clip0_17_367)">
+              <rect width="32" height="32" fill="url(#pattern0_17_367)" />
+            </g>
+            <defs>
+              <pattern
+                id="pattern0_17_367"
+                patternContentUnits="objectBoundingBox"
+                width="1"
+                height="1"
+              >
+                <use
+                  xlink:href="#image0_17_367"
+                  transform="scale(0.000976562)"
+                />
+              </pattern>
+              <clipPath id="clip0_17_367">
+                <rect width="32" height="32" fill="white" />
+              </clipPath>
+              <image
+                id="image0_17_367"
+                width="1024"
+                height="1024"
+                preserveAspectRatio="none"
+                xlink:href="../svg_texture/notification_texture.png"
+              />
+            </defs>
+          </svg>
+          TEST</span
+        >
       </div>
       <div id="status-logout" class="status-box" style="display: none">
         <span>치지직 로그인이 필요해요</span>
@@ -20,7 +57,23 @@
     </div>
     <div id="notification-check-wrapper">
       <div id="notification-check">
-        <span class="close-btn">x</span>
+        <div class="close-btn-wrapper">
+          <span class="close-btn"
+            ><svg
+              width="8"
+              height="8"
+              viewBox="0 0 10 10"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M1 1L9 9M9 1L1 9"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              ></path></svg
+          ></span>
+        </div>
         <p class="info-text">
           알림이 오지 않나요?
           <a href="#" id="settings-link">브라우저 알림 설정</a>
@@ -31,7 +84,23 @@
     </div>
 
     <div id="settings-wrapper">
-      <span class="close-settings-btn">x</span>
+      <div class="close-btn-wrapper">
+        <span class="close-settings-btn"
+          ><svg
+            width="8"
+            height="8"
+            viewBox="0 0 10 10"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M1 1L9 9M9 1L1 9"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            ></path></svg
+        ></span>
+      </div>
       <h1>알림 설정</h1>
       <div id="controls-wrapper">
         <div id="live-control-wrapper">
@@ -106,6 +175,31 @@
 
             <label class="switch" title="드롭스 설정 알림 ON/OFF">
               <input type="checkbox" id="drops-pause-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="logpower-control-wrapper">
+          <span class="logpower-control-label">통나무 파워 알림 받기</span>
+          <div class="toggle-wrapper">
+            <label class="switch" title="알림 ON/OFF">
+              <input type="checkbox" id="logpower-pause-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="party-control-wrapper">
+          <span class="drops-control-label">파티 설정 알림 받기</span>
+          <div class="toggle-wrapper">
+            <label class="switch" title="파티 설정 알림 모두 ON/OFF">
+              <input type="checkbox" id="party-keep-pause-toggle" />
+              <span class="slider"></span>
+            </label>
+
+            <label class="switch" title="파티 설정 알림 ON/OFF">
+              <input type="checkbox" id="party-pause-toggle" />
               <span class="slider"></span>
             </label>
           </div>
@@ -192,7 +286,7 @@
             치지직에서 팔로우한 스트리머의 알림 설정을 따릅니다.
           </div>
           <div style="display: flex; align-items: center">
-            <label class="switch" style="margin-right: 3px">
+            <label class="switch" style="margin-right: 5px">
               <input
                 type="checkbox"
                 id="test-keep-pause-toggle"
@@ -204,13 +298,13 @@
             알림을 OFF 할 경우, 브라우저 알림과 최신 알림 기록 모두 OFF
           </div>
           <div style="display: flex; align-items: center">
-            <label class="switch" style="margin-right: 3px">
+            <label class="switch" style="margin-right: 5px">
               <input type="checkbox" id="test-pause-toggle" checked disabled />
               <span class="slider"></span>
             </label>
             알림을 OFF 할 경우, 해당 브라우저 알림만 OFF
           </div>
-          <div style="margin-left: 42px">
+          <div style="margin-left: 45px">
             최신 알림 목록에는 알림 메시지가 그대로 기록
           </div>
         </div>
@@ -220,63 +314,506 @@
     <div id="control-wrapper">
       <div id="control-box">
         <span class="control-label">브라우저 알림 모두 받기</span>
-        <label class="switch" title="모든 알림 ON/OFF">
+        <label class="switch">
           <input type="checkbox" id="pause-toggle" />
           <span class="slider"></span>
         </label>
       </div>
 
-      <div id="settings-btn" title="브라우저 알림 설정">
+      <div id="off-all-notification-btn">
         <svg
+          width="25"
+          height="25"
+          viewBox="0 0 32 32"
+          fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          height="24px"
-          viewBox="0 -960 960 960"
-          width="24px"
-          fill="#a5a8ff"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
         >
-          <path
-            d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"
-          />
+          <g clip-path="url(#clip0_17_348)">
+            <rect width="32" height="32" fill="url(#pattern0_17_348)" />
+          </g>
+          <defs>
+            <pattern
+              id="pattern0_17_348"
+              patternContentUnits="objectBoundingBox"
+              width="1"
+              height="1"
+            >
+              <use xlink:href="#image0_17_348" transform="scale(0.000976562)" />
+            </pattern>
+            <clipPath id="clip0_17_348">
+              <rect width="32" height="32" fill="white" />
+            </clipPath>
+            <image
+              id="image0_17_348"
+              width="1024"
+              height="1024"
+              preserveAspectRatio="none"
+              xlink:href="../svg_texture/notification_off_texture.png"
+            />
+          </defs>
+        </svg>
+      </div>
+      <div id="off-all-notification-check-wrapper">
+        <div id="off-all-notification-check">
+          <div class="close-btn-wrapper">
+            <span class="close-btn"
+              ><svg
+                width="8"
+                height="8"
+                viewBox="0 0 10 10"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M1 1L9 9M9 1L1 9"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                ></path></svg
+            ></span>
+          </div>
+          <p class="info-text">
+            모든 치지직 팔로우 스트리머의<br />알림을 끄시겠습니까?
+          </p>
+          <button id="off-all-notification-confrim-btn">모든 알림 끄기</button>
+        </div>
+      </div>
+
+      <div id="sound-settings-open" class="settings-opener">
+        <svg
+          width="25"
+          height="25"
+          viewBox="0 0 1500 1500"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
+        >
+          <rect width="1500" height="1500" fill="url(#pattern0_49_68)" />
+          <defs>
+            <pattern
+              id="pattern0_49_68"
+              patternContentUnits="objectBoundingBox"
+              width="1"
+              height="1"
+            >
+              <use xlink:href="#image0_49_68" transform="scale(0.000666667)" />
+            </pattern>
+            <image
+              id="image0_49_68"
+              width="1500"
+              height="1500"
+              preserveAspectRatio="none"
+              xlink:href="../svg_texture/sound_settings_texture.png"
+            />
+          </defs>
+        </svg>
+      </div>
+
+      <div
+        id="sound-settings-panel"
+        class="sound-settings hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sound-settings-title"
+      >
+        <div class="sound-settings-header">
+          <div class="close-btn-wrapper">
+            <span id="sound-settings-close" class="close-settings-btn"
+              ><svg
+                width="8"
+                height="8"
+                viewBox="0 0 10 10"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M1 1L9 9M9 1L1 9"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                ></path></svg
+            ></span>
+          </div>
+          <h1 id="sound-settings-title">알림 사운드 설정</h1>
+        </div>
+
+        <div class="sound-settings-grid" id="sound-settings-grid"></div>
+
+        <div class="sound-settings-footer">
+          <button id="sound-settings-reset" class="ghost-btn">
+            기본값으로
+          </button>
+          <span class="hint"
+            >* 변경 즉시 저장됩니다. 미리듣기로 확인하세요.</span
+          >
+        </div>
+      </div>
+
+      <div id="settings-btn">
+        <svg
+          width="35"
+          height="35"
+          viewBox="0 0 1224 1224"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
+        >
+          <g filter="url(#filter0_d_23_70)">
+            <rect
+              x="40"
+              y="40"
+              width="1024"
+              height="1024"
+              fill="url(#pattern0_23_70)"
+            />
+            <g style="mix-blend-mode: multiply">
+              <mask
+                id="mask0_23_70"
+                style="mask-type: alpha"
+                maskUnits="userSpaceOnUse"
+                x="40"
+                y="40"
+                width="1024"
+                height="1024"
+              >
+                <rect
+                  x="40"
+                  y="40"
+                  width="1024"
+                  height="1024"
+                  fill="url(#pattern1_23_70)"
+                />
+              </mask>
+              <g mask="url(#mask0_23_70)">
+                <rect x="40" y="40" width="1024" height="1024" fill="#6155F5" />
+              </g>
+            </g>
+          </g>
+          <defs>
+            <filter
+              id="filter0_d_23_70"
+              x="0"
+              y="0"
+              width="1224"
+              height="1224"
+              filterUnits="userSpaceOnUse"
+              color-interpolation-filters="sRGB"
+            >
+              <feFlood flood-opacity="0" result="BackgroundImageFix" />
+              <feColorMatrix
+                in="SourceAlpha"
+                type="matrix"
+                values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                result="hardAlpha"
+              />
+              <feOffset dx="60" dy="60" />
+              <feGaussianBlur stdDeviation="50" />
+              <feComposite in2="hardAlpha" operator="out" />
+              <feColorMatrix
+                type="matrix"
+                values="0 0 0 0 0.0615456 0 0 0 0 0.176884 0 0 0 0 0.379655 0 0 0 0.08 0"
+              />
+              <feBlend
+                mode="normal"
+                in2="BackgroundImageFix"
+                result="effect1_dropShadow_23_70"
+              />
+              <feBlend
+                mode="normal"
+                in="SourceGraphic"
+                in2="effect1_dropShadow_23_70"
+                result="shape"
+              />
+            </filter>
+            <pattern
+              id="pattern0_23_70"
+              patternContentUnits="objectBoundingBox"
+              width="1"
+              height="1"
+            >
+              <use xlink:href="#image0_23_70" transform="scale(0.000976562)" />
+            </pattern>
+            <pattern
+              id="pattern1_23_70"
+              patternContentUnits="objectBoundingBox"
+              width="1"
+              height="1"
+            >
+              <use xlink:href="#image1_23_70" transform="scale(0.000976562)" />
+            </pattern>
+            <image
+              id="image0_23_70"
+              width="1024"
+              height="1024"
+              preserveAspectRatio="none"
+              xlink:href="../svg_texture/settings_texture.png"
+            />
+            <image
+              id="image1_23_70"
+              width="1024"
+              height="1024"
+              preserveAspectRatio="none"
+              xlink:href="../svg_texture/settings_texture_2.png"
+            />
+          </defs>
         </svg>
       </div>
     </div>
 
+    <div id="bookmarks-wrapper" class="hidden"></div>
+
     <div id="notification-center">
       <div class="center-header-wrapper">
         <div class="center-header">
-          <div style="display: flex">
+          <div style="display: flex; align-items: center">
             <h3>최신 알림</h3>
-            <div id="display-limit-settings-btn" title="알림 개수 설정">
+            <div id="display-limit-settings-btn">
               <svg
+                width="25"
+                height="25"
+                viewBox="0 0 1224 1224"
+                fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                height="18px"
-                viewBox="0 -960 960 960"
-                width="18px"
-                fill="#a5a8ff"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
               >
-                <path
-                  d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"
-                />
+                <g filter="url(#filter0_d_23_70)">
+                  <rect
+                    x="40"
+                    y="40"
+                    width="1024"
+                    height="1024"
+                    fill="url(#pattern0_23_70_limit)"
+                  />
+                  <g style="mix-blend-mode: multiply">
+                    <mask
+                      id="mask0_23_70_limit"
+                      style="mask-type: alpha"
+                      maskUnits="userSpaceOnUse"
+                      x="40"
+                      y="40"
+                      width="1024"
+                      height="1024"
+                    >
+                      <rect
+                        x="40"
+                        y="40"
+                        width="1024"
+                        height="1024"
+                        fill="url(#pattern1_23_70_limit)"
+                      />
+                    </mask>
+                    <g mask="url(#mask0_23_70_limit)">
+                      <rect
+                        x="40"
+                        y="40"
+                        width="1024"
+                        height="1024"
+                        fill="#6155F5"
+                      />
+                    </g>
+                  </g>
+                </g>
+                <defs>
+                  <filter
+                    id="filter0_d_23_70_limit"
+                    x="0"
+                    y="0"
+                    width="1224"
+                    height="1224"
+                    filterUnits="userSpaceOnUse"
+                    color-interpolation-filters="sRGB"
+                  >
+                    <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                    <feColorMatrix
+                      in="SourceAlpha"
+                      type="matrix"
+                      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                      result="hardAlpha"
+                    />
+                    <feOffset dx="60" dy="60" />
+                    <feGaussianBlur stdDeviation="50" />
+                    <feComposite in2="hardAlpha" operator="out" />
+                    <feColorMatrix
+                      type="matrix"
+                      values="0 0 0 0 0.0615456 0 0 0 0 0.176884 0 0 0 0 0.379655 0 0 0 0.08 0"
+                    />
+                    <feBlend
+                      mode="normal"
+                      in2="BackgroundImageFix"
+                      result="effect1_dropShadow_23_70"
+                    />
+                    <feBlend
+                      mode="normal"
+                      in="SourceGraphic"
+                      in2="effect1_dropShadow_23_70"
+                      result="shape"
+                    />
+                  </filter>
+                  <pattern
+                    id="pattern0_23_70_limit"
+                    patternContentUnits="objectBoundingBox"
+                    width="1"
+                    height="1"
+                  >
+                    <use
+                      xlink:href="#image0_23_70_limit"
+                      transform="scale(0.000976562)"
+                    />
+                  </pattern>
+                  <pattern
+                    id="pattern1_23_70_limit"
+                    patternContentUnits="objectBoundingBox"
+                    width="1"
+                    height="1"
+                  >
+                    <use
+                      xlink:href="#image1_23_70_limit"
+                      transform="scale(0.000976562)"
+                    />
+                  </pattern>
+                  <image
+                    id="image0_23_70_limit"
+                    width="1024"
+                    height="1024"
+                    preserveAspectRatio="none"
+                    xlink:href="../svg_texture/settings_texture.png"
+                  />
+                  <image
+                    id="image1_23_70_limit"
+                    width="1024"
+                    height="1024"
+                    preserveAspectRatio="none"
+                    xlink:href="../svg_texture/settings_texture_2.png"
+                  />
+                </defs>
               </svg>
             </div>
-          </div>
+            <span id="toggle-fold-btn">
+              <svg
+                class="icon-fold"
+                width="20"
+                height="20"
+                viewBox="0 0 28 28"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g clip-path="url(#clip0_3_32907)">
+                  <path
+                    d="M6.67969 24.5977H20.8945C23.3555 24.5977 24.5742 23.3789 24.5742 20.9648V6.65625C24.5742 4.24219 23.3555 3.02344 20.8945 3.02344H6.67969C4.23047 3.02344 3 4.23047 3 6.65625V20.9648C3 23.3906 4.23047 24.5977 6.67969 24.5977ZM6.70312 22.7109C5.53125 22.7109 4.88672 22.0898 4.88672 20.8711V6.75C4.88672 5.53125 5.53125 4.91016 6.70312 4.91016H20.8711C22.0312 4.91016 22.6875 5.53125 22.6875 6.75V20.8711C22.6875 22.0898 22.0312 22.7109 20.8711 22.7109H6.70312Z"
+                    fill="black"
+                  />
+                  <path
+                    d="M18.8555 13.7812C19.3125 13.7812 19.6875 13.418 19.6875 12.9609V8.88281C19.6875 8.17969 19.3242 7.91016 18.7148 7.91016H14.6602C14.2031 7.91016 13.8281 8.28516 13.8281 8.74219C13.8281 9.19922 14.2031 9.5625 14.6602 9.5625H15.2344L17.0273 9.44531L14.3789 11.9648C14.0391 12.293 14.0273 12.8672 14.3672 13.207C14.7188 13.5586 15.2695 13.5703 15.6211 13.1953L18.1523 10.5352L18.0352 12.3867V12.9609C18.0352 13.418 18.3984 13.7812 18.8555 13.7812ZM12.9375 19.6992C13.3945 19.6992 13.7578 19.3242 13.7578 18.8672C13.7578 18.4102 13.3945 18.0469 12.9375 18.0469H12.3633L10.5703 18.1641L13.207 15.6445C13.5469 15.3164 13.5586 14.7422 13.2188 14.4023C12.8789 14.0508 12.3164 14.0391 11.9766 14.4141L9.44531 17.0742L9.5625 15.2227V14.6484C9.5625 14.1914 9.1875 13.8281 8.73047 13.8281C8.27344 13.8281 7.91016 14.1914 7.91016 14.6484V18.7266C7.91016 19.4297 8.26172 19.6992 8.87109 19.6992H12.9375Z"
+                    fill="black"
+                  />
+                </g>
+                <defs>
+                  <clipPath id="clip0_3_32907">
+                    <rect
+                      width="21.5742"
+                      height="21.5977"
+                      fill="white"
+                      transform="translate(3 3)"
+                    />
+                  </clipPath>
+                </defs>
+              </svg>
 
+              <svg
+                class="icon-unfold"
+                width="20"
+                height="20"
+                viewBox="0 0 28 28"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g clip-path="url(#clip0_3_32921)">
+                  <path
+                    d="M6.67969 24.5977H20.8945C23.3555 24.5977 24.5742 23.3789 24.5742 20.9648V6.65625C24.5742 4.24219 23.3555 3.02344 20.8945 3.02344H6.67969C4.23047 3.02344 3 4.23047 3 6.65625V20.9648C3 23.3906 4.23047 24.5977 6.67969 24.5977ZM6.70312 22.7109C5.53125 22.7109 4.88672 22.0898 4.88672 20.8711V6.75C4.88672 5.53125 5.53125 4.91016 6.70312 4.91016H20.8711C22.0312 4.91016 22.6875 5.53125 22.6875 6.75V20.8711C22.6875 22.0898 22.0312 22.7109 20.8711 22.7109H6.70312Z"
+                    fill="black"
+                    fill-opacity="0.85"
+                  />
+                  <path
+                    d="M8.625 13.6406H12.6797C13.2891 13.6406 13.6523 13.3711 13.6523 12.668V8.58985C13.6523 8.13282 13.2773 7.76954 12.8203 7.76954C12.3633 7.76954 12 8.13282 12 8.58985V9.16407L12.1172 11.0156L9.05859 7.83985C8.71875 7.47657 8.15625 7.47657 7.81641 7.82813C7.47656 8.16798 7.48828 8.73048 7.82812 9.07032L10.9922 12.1055L9.19922 11.9883H8.625C8.16797 11.9883 7.79297 12.3516 7.79297 12.8086C7.79297 13.2656 8.16797 13.6406 8.625 13.6406ZM14.7656 19.8047C15.2227 19.8047 15.5859 19.4414 15.5859 18.9844V18.4102L15.4688 16.5586L18.5273 19.7344C18.8672 20.0977 19.4297 20.0977 19.7695 19.7461C20.1094 19.4062 20.0977 18.832 19.7578 18.5039L16.5938 15.4688L18.3867 15.5859H18.9609C19.418 15.5859 19.793 15.2227 19.793 14.7656C19.793 14.2969 19.418 13.9336 18.9609 13.9336H14.9062C14.2969 13.9336 13.9336 14.2031 13.9336 14.8945V18.9844C13.9336 19.4414 14.3086 19.8047 14.7656 19.8047Z"
+                    fill="black"
+                    fill-opacity="0.85"
+                  />
+                </g>
+                <defs>
+                  <clipPath id="clip0_3_32921">
+                    <rect
+                      width="21.5742"
+                      height="21.5977"
+                      fill="white"
+                      transform="translate(3 3)"
+                    />
+                  </clipPath>
+                </defs>
+              </svg>
+            </span>
+            <span id="bookmark-btn">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 1000 1000"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+              >
+                <rect width="1000" height="1000" fill="url(#pattern0_52_68)" />
+                <defs>
+                  <pattern
+                    id="pattern0_52_68"
+                    patternContentUnits="objectBoundingBox"
+                    width="1"
+                    height="1"
+                  >
+                    <use xlink:href="#image0_52_68" transform="scale(0.001)" />
+                  </pattern>
+                  <image
+                    id="image0_52_68"
+                    width="1000"
+                    height="1000"
+                    preserveAspectRatio="none"
+                    xlink:href="../svg_texture/bookmark_texture.png"
+                  />
+                </defs>
+              </svg>
+            </span>
+          </div>
           <div id="display-limit-settings-wrapper">
             <div class="display-limit-settings">
+              <div class="close-btn-wrapper">
+                <span class="close-display-settings-btn"
+                  ><svg
+                    width="8"
+                    height="8"
+                    viewBox="0 0 10 10"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1 1L9 9M9 1L1 9"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    ></path></svg
+                ></span>
+              </div>
               <h3>알림 표시 개수 설정</h3>
               <div class="display-limit-wrapper">
-                <span class="close-display-settings-btn">x</span>
                 <input
                   type="number"
                   id="display-limit-input"
                   min="10"
-                  max="500"
+                  max="1000"
                   step="10"
                 />
                 <button id="display-limit-confirm-btn">확인</button>
               </div>
               <div id="limit-info">
-                알림 개수 범위는 10~500개입니다<br />(기본값 100개)
+                알림 개수 범위는 10~1000개입니다<br />(기본값 300개)
               </div>
             </div>
           </div>
@@ -287,22 +824,646 @@
           </div>
         </div>
         <div class="mark-btn-wrapper">
-          <button id="mark-all-btn">All</button>
-          <button id="mark-live-btn">🔴</button>
-          <button id="mark-category-live-title-btn">🔄</button>
-          <button id="mark-watch-party-btn">🍿</button>
-          <button id="mark-drops-btn">🪂</button>
-          <button id="mark-restrict-btn">🔞</button>
-          <button id="mark-video-btn">🎬 / 🎦</button>
-          <button id="mark-community-btn">💬</button>
-          <button id="mark-lounge-btn">🧀</button>
-          <button id="mark-banner-btn">📢</button>
+          <button id="mark-all-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 355 218"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="355" height="218" fill="url(#pattern0_13_54)" />
+              <defs>
+                <pattern
+                  id="pattern0_13_54"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_13_54"
+                    transform="matrix(0.0028169 0 0 0.00458716 -0.198042 -0.63034)"
+                  />
+                </pattern>
+                <image
+                  id="image0_13_54"
+                  width="500"
+                  height="500"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/all_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-live-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 359 359"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="359" height="359" fill="url(#pattern0_11_51)" />
+              <defs>
+                <pattern
+                  id="pattern0_11_51"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_11_51"
+                    transform="translate(-0.192505 -0.198621) scale(0.00278552)"
+                  />
+                </pattern>
+                <image
+                  id="image0_11_51"
+                  width="500"
+                  height="500"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/live_on_texture.png"
+                />
+              </defs>
+            </svg>
+            /
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 800 800"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <g clip-path="url(#clip0_15_89)">
+                <rect
+                  x="-32"
+                  y="15"
+                  width="863"
+                  height="770"
+                  fill="url(#pattern0_15_89)"
+                />
+              </g>
+              <defs>
+                <pattern
+                  id="pattern0_15_89"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_15_89"
+                    transform="matrix(0.00100618 0 0 0.00112755 -1.60626 0.0503178)"
+                  />
+                </pattern>
+                <clipPath id="clip0_15_89">
+                  <rect width="800" height="800" fill="white" />
+                </clipPath>
+                <image
+                  id="image0_15_89"
+                  width="3072"
+                  height="2048"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/live_off_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-category-live-title-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 1500 1500"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="1500" height="1500" fill="url(#pattern0_2_69)" />
+              <defs>
+                <pattern
+                  id="pattern0_2_69"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_2_69"
+                    transform="scale(0.000666667)"
+                  />
+                </pattern>
+                <image
+                  id="image0_2_69"
+                  width="1500"
+                  height="1500"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/live_change_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-watch-party-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 800 800"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect
+                x="19"
+                y="15"
+                width="781"
+                height="770"
+                fill="url(#pattern0_17_264)"
+              />
+              <defs>
+                <pattern
+                  id="pattern0_17_264"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_17_264"
+                    transform="matrix(0.00102376 0 0 0.00103824 -0.321363 -0.0371193)"
+                  />
+                </pattern>
+                <image
+                  id="image0_17_264"
+                  width="3072"
+                  height="2048"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/watch_party_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-drops-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 32 32"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <g clip-path="url(#clip0_16_232)">
+                <rect
+                  x="0.162323"
+                  width="32"
+                  height="32"
+                  fill="url(#pattern0_16_232)"
+                ></rect>
+              </g>
+              <defs>
+                <pattern
+                  id="pattern0_16_232"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_16_232"
+                    transform="scale(0.000976562)"
+                  ></use>
+                </pattern>
+                <clipPath id="clip0_16_232">
+                  <rect width="32" height="32" fill="white"></rect>
+                </clipPath>
+                <image
+                  id="image0_16_232"
+                  width="1024"
+                  height="1024"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/drops_texture.png"
+                ></image>
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-logpower-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 72 72"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="72" height="72" fill="url(#pattern0_43_657)"></rect>
+              <defs>
+                <pattern
+                  id="pattern0_43_657"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_43_657"
+                    transform="scale(0.0138889)"
+                  ></use>
+                </pattern>
+                <image
+                  id="image0_43_657"
+                  width="72"
+                  height="72"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/log_power_texture.png"
+                ></image>
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-party-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 800 800"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <g clip-path="url(#clip0_15_113)">
+                <rect
+                  x="-11"
+                  y="15"
+                  width="821"
+                  height="770"
+                  fill="url(#pattern0_15_113)"
+                />
+              </g>
+              <defs>
+                <pattern
+                  id="pattern0_15_113"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_15_113"
+                    transform="matrix(0.00089898 0 0 0.000958388 -0.202515 -0.0250543)"
+                  />
+                </pattern>
+                <clipPath id="clip0_15_113">
+                  <rect width="800" height="800" fill="white" />
+                </clipPath>
+                <image
+                  id="image0_15_113"
+                  width="3072"
+                  height="2048"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/party_start_texture.png"
+                />
+              </defs>
+            </svg>
+
+            /
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 800 800"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect
+                x="19"
+                y="15"
+                width="781"
+                height="770"
+                fill="url(#pattern0_15_107)"
+              />
+              <defs>
+                <pattern
+                  id="pattern0_15_107"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_15_107"
+                    transform="matrix(0.000703309 0 0 0.000713357 -0.232243 0.0210555)"
+                  />
+                </pattern>
+                <image
+                  id="image0_15_107"
+                  width="4096"
+                  height="2838"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/party_end_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-party-donation-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 800 800"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect
+                x="19"
+                y="15"
+                width="781"
+                height="770"
+                fill="url(#pattern0_15_95)"
+              />
+              <defs>
+                <pattern
+                  id="pattern0_15_95"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_15_95"
+                    transform="matrix(0.000953885 0 0 0.000967375 -0.239418 -0.96682)"
+                  />
+                </pattern>
+                <image
+                  id="image0_15_95"
+                  width="3072"
+                  height="2048"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/party_donation_start_texture.png"
+                />
+              </defs>
+            </svg>
+            /
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 800 800"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <g clip-path="url(#clip0_15_92)">
+                <rect
+                  x="-30"
+                  y="15"
+                  width="859"
+                  height="770"
+                  fill="url(#pattern0_15_92)"
+                />
+              </g>
+              <defs>
+                <pattern
+                  id="pattern0_15_92"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_15_92"
+                    transform="matrix(0.000749277 0 0 0.000835765 -1.21256 0.0717412)"
+                  />
+                </pattern>
+                <clipPath id="clip0_15_92">
+                  <rect width="800" height="800" fill="white" />
+                </clipPath>
+                <image
+                  id="image0_15_92"
+                  width="3072"
+                  height="2048"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/party_donation_end_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-restrict-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 394 394"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="394" height="394" fill="url(#pattern0_12_52)" />
+              <defs>
+                <pattern
+                  id="pattern0_12_52"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_12_52"
+                    transform="translate(-0.135347 -0.137885) scale(0.00253807)"
+                  />
+                </pattern>
+                <image
+                  id="image0_12_52"
+                  width="500"
+                  height="500"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/restrict_on_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-video-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 800 800"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect
+                y="15"
+                width="800"
+                height="770"
+                fill="url(#pattern0_16_116)"
+                style="transform: translateY(10px)"
+              />
+              <defs>
+                <pattern
+                  id="pattern0_16_116"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_16_116"
+                    transform="matrix(0.00100196 0 0 0.00104085 -0.317484 0.00469463)"
+                  />
+                </pattern>
+                <image
+                  id="image0_16_116"
+                  width="3072"
+                  height="2048"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/replay_texture.png"
+                />
+              </defs>
+            </svg>
+
+            /
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 1500 1500"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="1500" height="1500" fill="url(#pattern0_2_166)" />
+              <defs>
+                <pattern
+                  id="pattern0_2_166"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_2_166"
+                    transform="scale(0.000666667)"
+                  />
+                </pattern>
+                <image
+                  id="image0_2_166"
+                  width="1500"
+                  height="1500"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/upload_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-community-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 1500 1500"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="1500" height="1500" fill="url(#pattern0_32_64)" />
+              <defs>
+                <pattern
+                  id="pattern0_32_64"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_32_64"
+                    transform="scale(0.000666667)"
+                  />
+                </pattern>
+                <image
+                  id="image0_32_64"
+                  width="1500"
+                  height="1500"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/community_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-lounge-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 800 800"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect
+                x="19"
+                y="15"
+                width="781"
+                height="770"
+                fill="url(#pattern0_15_110)"
+                style="transform: translate(-20px, -20px)"
+              />
+              <defs>
+                <pattern
+                  id="pattern0_15_110"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_15_110"
+                    transform="matrix(0.00182378 0 0 0.00184957 -0.169575 0.0368672)"
+                  />
+                </pattern>
+                <image
+                  id="image0_15_110"
+                  width="1536"
+                  height="1024"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/lounge_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-banner-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 1200 1200"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <g clip-path="url(#clip0_32_87)">
+                <rect width="1200" height="1200" fill="url(#pattern0_32_87)" />
+              </g>
+              <defs>
+                <pattern
+                  id="pattern0_32_87"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_32_87"
+                    transform="scale(0.000833333)"
+                  />
+                </pattern>
+                <clipPath id="clip0_32_87">
+                  <rect width="1200" height="1200" fill="white" />
+                </clipPath>
+                <image
+                  id="image0_32_87"
+                  width="1200"
+                  height="1200"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/banner_texture.png"
+                />
+              </defs>
+            </svg>
+          </button>
         </div>
       </div>
-      <div id="notification-list"></div>
-      <div id="no-notifications" style="display: none">
-        <p>표시할 알림이 없습니다.</p>
+      <div id="notification-list">
+        <div class="virtual-inner"></div>
+        <div class="virtual-sentinel" aria-hidden="true"></div>
       </div>
+      <div id="no-notifications" style="display: none"></div>
     </div>
     <script src="popup.js"></script>
   </body>
