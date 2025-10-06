@@ -5103,6 +5103,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // async 응답
   }
 
+  if (request.type === "GET_LOG_POWER_BALANCES") {
+    (async () => {
+      try {
+        const res = await fetch(
+          "https://api.chzzk.naver.com/service/v1/log-power/balances"
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        sendResponse({ success: true, data: json });
+      } catch (e) {
+        sendResponse({ success: false, error: String(e) });
+      }
+    })();
+    return true; // 비동기 응답
+  }
+
   if (request.type === "LOG_POWER_PUT_DONE") {
     (async () => {
       const {

@@ -21,7 +21,8 @@
     "https://video-phinf.pstatic.net/*",
     "https://ssl.pstatic.net/*",
     "https://storep-phinf.pstatic.net/*",
-    "https://livecloud-thumb.akamaized.net/chzzk/kr/live-rewind-image/*"
+    "https://livecloud-thumb.akamaized.net/chzzk/kr/live-rewind-image/*",
+    "https://game.naver.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -31,6 +32,10 @@
       "matches": ["https://chzzk.naver.com/*"],
       "js": ["content.js"],
       "all_frames": true
+    },
+    {
+      "matches": ["https://game.naver.com/profile*"],
+      "js": ["profile-power.js"]
     }
   ],
   "web_accessible_resources": [
