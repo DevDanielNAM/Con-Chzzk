@@ -246,7 +246,6 @@ const bannerSVG = `<svg
                 />
               </defs>
             </svg>`;
-const logPowerSVG = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="live_chatting_popup_my_profile_icon_power__laD+4"><mask id="mask0_4502_4387" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16" style="mask-type: alpha;"><path d="M6.79453 2.43359C7.09254 2.43374 7.36838 2.58075 7.53476 2.82161L7.59921 2.93099L8.91692 5.56641H5.98333L5.82643 5.25326L5.06796 3.73568C4.76891 3.13737 5.20381 2.43379 5.87265 2.43359H6.79453Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M12.1484 4.43359C13.0053 4.43359 13.6561 5.0624 14.0599 5.80273C14.4754 6.5645 14.7148 7.57802 14.7148 8.66667C14.7148 9.75531 14.4754 10.7688 14.0599 11.5306C13.6561 12.2709 13.0053 12.8997 12.1484 12.8997H4C3.14314 12.8997 2.49236 12.2709 2.08854 11.5306C1.67304 10.7688 1.43359 9.75531 1.43359 8.66667C1.43359 7.57802 1.67304 6.5645 2.08854 5.80273C2.49236 5.0624 3.14314 4.43359 4 4.43359H12.1484ZM4 5.56641C3.75232 5.56641 3.40334 5.75848 3.08333 6.34505C2.77498 6.91036 2.56641 7.73027 2.56641 8.66667C2.56641 9.60306 2.77498 10.423 3.08333 10.9883C3.40334 11.5749 3.75232 11.7669 4 11.7669C4.24767 11.7669 4.59666 11.5749 4.91667 10.9883C5.22502 10.423 5.43359 9.60306 5.43359 8.66667C5.43359 7.73027 5.22502 6.91036 4.91667 6.34505C4.59666 5.75848 4.24767 5.56641 4 5.56641ZM6.52604 9.43359C6.48364 9.83162 6.40829 10.2124 6.30404 10.5664H11.6667L11.7246 10.5638C12.0104 10.5348 12.2331 10.2934 12.2331 10C12.2331 9.7066 12.0104 9.46522 11.7246 9.4362L11.6667 9.43359H6.52604ZM6.28385 6.70052C6.39253 7.05354 6.47186 7.43444 6.51823 7.83333H7.33333L7.39128 7.83073C7.67694 7.80172 7.89962 7.56022 7.89974 7.26693C7.89974 6.97353 7.67701 6.73215 7.39128 6.70312L7.33333 6.70052H6.28385ZM9.60026 6.70052C9.2873 6.70052 9.0332 6.95397 9.0332 7.26693C9.03333 7.57978 9.28738 7.83333 9.60026 7.83333H13.5228C13.4637 7.41061 13.3619 7.02765 13.2298 6.70052H9.60026Z" fill="currentColor"></path><path d="M5.43359 8.66667C5.43359 7.73027 5.22502 6.91036 4.91667 6.34505C4.59666 5.75848 4.24767 5.56641 4 5.56641C3.75232 5.56641 3.40334 5.75848 3.08333 6.34505C2.77498 6.91036 2.56641 7.73027 2.56641 8.66667C2.56641 9.60306 2.77498 10.423 3.08333 10.9883C3.40334 11.5749 3.75232 11.7669 4 11.7669C4.24767 11.7669 4.59666 11.5749 4.91667 10.9883C5.22502 10.423 5.43359 9.60306 5.43359 8.66667ZM6.56641 8.66667C6.56641 9.75531 6.32696 10.7688 5.91146 11.5306C5.50764 12.2709 4.85686 12.8997 4 12.8997C3.14314 12.8997 2.49236 12.2709 2.08854 11.5306C1.67304 10.7688 1.43359 9.75531 1.43359 8.66667C1.43359 7.57802 1.67304 6.5645 2.08854 5.80273C2.49236 5.0624 3.14314 4.43359 4 4.43359C4.85686 4.43359 5.50764 5.0624 5.91146 5.80273C6.32696 6.5645 6.56641 7.57802 6.56641 8.66667Z" fill="currentColor"></path><path d="M4.66667 8.66667C4.66667 9.40305 4.36819 10 4 10C3.63181 10 3.33333 9.40305 3.33333 8.66667C3.33333 7.93029 3.63181 7.33333 4 7.33333C4.36819 7.33333 4.66667 7.93029 4.66667 8.66667Z" fill="currentColor"></path></mask><g mask="url(#mask0_4502_4387)"><rect width="15.9998" height="16" fill="currentColor"></rect></g></svg>`;
 const logPowerTitleSVG = `<svg
               width="15"
               height="15"
@@ -298,12 +297,16 @@ function makeCheeseSVG(uniqueId = Math.random().toString(36).slice(2)) {
   </svg>`;
 }
 
+function makeLogPowerSVG() {
+  return `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="live_chatting_popup_my_profile_icon_power__laD+4"><mask id="mask0_4502_4387" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16" style="mask-type: alpha;"><path d="M6.79453 2.43359C7.09254 2.43374 7.36838 2.58075 7.53476 2.82161L7.59921 2.93099L8.91692 5.56641H5.98333L5.82643 5.25326L5.06796 3.73568C4.76891 3.13737 5.20381 2.43379 5.87265 2.43359H6.79453Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M12.1484 4.43359C13.0053 4.43359 13.6561 5.0624 14.0599 5.80273C14.4754 6.5645 14.7148 7.57802 14.7148 8.66667C14.7148 9.75531 14.4754 10.7688 14.0599 11.5306C13.6561 12.2709 13.0053 12.8997 12.1484 12.8997H4C3.14314 12.8997 2.49236 12.2709 2.08854 11.5306C1.67304 10.7688 1.43359 9.75531 1.43359 8.66667C1.43359 7.57802 1.67304 6.5645 2.08854 5.80273C2.49236 5.0624 3.14314 4.43359 4 4.43359H12.1484ZM4 5.56641C3.75232 5.56641 3.40334 5.75848 3.08333 6.34505C2.77498 6.91036 2.56641 7.73027 2.56641 8.66667C2.56641 9.60306 2.77498 10.423 3.08333 10.9883C3.40334 11.5749 3.75232 11.7669 4 11.7669C4.24767 11.7669 4.59666 11.5749 4.91667 10.9883C5.22502 10.423 5.43359 9.60306 5.43359 8.66667C5.43359 7.73027 5.22502 6.91036 4.91667 6.34505C4.59666 5.75848 4.24767 5.56641 4 5.56641ZM6.52604 9.43359C6.48364 9.83162 6.40829 10.2124 6.30404 10.5664H11.6667L11.7246 10.5638C12.0104 10.5348 12.2331 10.2934 12.2331 10C12.2331 9.7066 12.0104 9.46522 11.7246 9.4362L11.6667 9.43359H6.52604ZM6.28385 6.70052C6.39253 7.05354 6.47186 7.43444 6.51823 7.83333H7.33333L7.39128 7.83073C7.67694 7.80172 7.89962 7.56022 7.89974 7.26693C7.89974 6.97353 7.67701 6.73215 7.39128 6.70312L7.33333 6.70052H6.28385ZM9.60026 6.70052C9.2873 6.70052 9.0332 6.95397 9.0332 7.26693C9.03333 7.57978 9.28738 7.83333 9.60026 7.83333H13.5228C13.4637 7.41061 13.3619 7.02765 13.2298 6.70052H9.60026Z" fill="currentColor"></path><path d="M5.43359 8.66667C5.43359 7.73027 5.22502 6.91036 4.91667 6.34505C4.59666 5.75848 4.24767 5.56641 4 5.56641C3.75232 5.56641 3.40334 5.75848 3.08333 6.34505C2.77498 6.91036 2.56641 7.73027 2.56641 8.66667C2.56641 9.60306 2.77498 10.423 3.08333 10.9883C3.40334 11.5749 3.75232 11.7669 4 11.7669C4.24767 11.7669 4.59666 11.5749 4.91667 10.9883C5.22502 10.423 5.43359 9.60306 5.43359 8.66667ZM6.56641 8.66667C6.56641 9.75531 6.32696 10.7688 5.91146 11.5306C5.50764 12.2709 4.85686 12.8997 4 12.8997C3.14314 12.8997 2.49236 12.2709 2.08854 11.5306C1.67304 10.7688 1.43359 9.75531 1.43359 8.66667C1.43359 7.57802 1.67304 6.5645 2.08854 5.80273C2.49236 5.0624 3.14314 4.43359 4 4.43359C4.85686 4.43359 5.50764 5.0624 5.91146 5.80273C6.32696 6.5645 6.56641 7.57802 6.56641 8.66667Z" fill="currentColor"></path><path d="M4.66667 8.66667C4.66667 9.40305 4.36819 10 4 10C3.63181 10 3.33333 9.40305 3.33333 8.66667C3.33333 7.93029 3.63181 7.33333 4 7.33333C4.36819 7.33333 4.66667 7.93029 4.66667 8.66667Z" fill="currentColor"></path></mask><g mask="url(#mask0_4502_4387)"><rect width="15.9998" height="16" fill="currentColor"></rect></g></svg>`;
+}
+
 let currentFilter = "ALL";
 let timeUpdaterInterval = null; // 인터벌 ID를 저장할 변수
 
 let suppressNextStorageRerender = false;
 // === Virtual list config ===
-const VIRTUAL_CHUNK = 150; // 한번에 추가로 그릴 개수 (100~200 권장)
+const VIRTUAL_CHUNK = 100; // 한번에 추가로 그릴 개수 (100~200 권장)
 const VIRTUAL_OVERSCAN = 0; // (옵션) 여유분, 지금은 0
 let virtualState = {
   items: [], // 필터링된 최종 목록
@@ -454,6 +457,7 @@ function applyTooltip() {
     "off-all-notification-btn"
   );
   const soundSettingsBtn = document.getElementById("sound-settings-open");
+  const logpowerSettingsBtn = document.getElementById("logpower-settings-btn");
   const settingsBtn = document.getElementById("settings-btn");
   const displayLimitSettingsBtn = document.getElementById(
     "display-limit-settings-btn"
@@ -464,6 +468,7 @@ function applyTooltip() {
   if (
     !controlSwitch &&
     !offAllNotificationBtn &&
+    !logpowerSettingsBtn &&
     !soundSettingsBtn &&
     !settingsBtn &&
     !displayLimitSettingsBtn &&
@@ -477,6 +482,7 @@ function applyTooltip() {
   if (
     hasTooltip(controlSwitch) &&
     hasTooltip(offAllNotificationBtn) &&
+    hasTooltip(logpowerSettingsBtn) &&
     hasTooltip(soundSettingsBtn) &&
     hasTooltip(settingsBtn) &&
     hasTooltip(bookmarkBtn) &&
@@ -500,6 +506,10 @@ function applyTooltip() {
   const soundSettingsTooltipText = document.createElement("span");
   soundSettingsTooltipText.className = "tooltip-text";
   soundSettingsTooltipText.textContent = "브라우저 알림 사운드 설정";
+
+  const logpowerSettingsTooltipText = document.createElement("span");
+  logpowerSettingsTooltipText.className = "tooltip-text";
+  logpowerSettingsTooltipText.textContent = "통나무 파워 설정";
 
   const settingsTooltipText = document.createElement("span");
   settingsTooltipText.className = "tooltip-text";
@@ -526,6 +536,7 @@ function applyTooltip() {
   // 3. 툴팁 wrapper 역할을 할 클래스를 버튼 자체에 부여
   controlSwitch.classList.add("control-switch-tooltip");
   offAllNotificationBtn.classList.add("off-all-notification-tooltip");
+  logpowerSettingsBtn.classList.add("logpower-settings-tooltip");
   soundSettingsBtn.classList.add("sound-settings-tooltip");
   settingsBtn.classList.add("settings-tooltip");
   displayLimitSettingsBtn.classList.add("display-limit-settings-tooltip");
@@ -535,6 +546,7 @@ function applyTooltip() {
   // 4. 툴팁 텍스트를 버튼의 자식으로 추가
   controlSwitch.appendChild(controlSwitchTooltipText);
   offAllNotificationBtn.appendChild(offAllNotificationTooltipText);
+  logpowerSettingsBtn.appendChild(logpowerSettingsTooltipText);
   soundSettingsBtn.appendChild(soundSettingsTooltipText);
   settingsBtn.appendChild(settingsTooltipText);
   displayLimitSettingsBtn.appendChild(displayLimitSettingsTooltipText);
@@ -657,9 +669,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   checkLoginStatus();
   initializeAllToggles();
+  initializeLogPowerToggles();
   setupNotificationChecker();
   initializeDisplayLimitSettings();
   initializeSoundSettings();
+  initializeBadgeClickAction();
+  wireSummaryManualButtons();
   updateDonationAmounts();
   applyTooltip();
 
@@ -867,6 +882,28 @@ async function checkLoginStatus() {
     });
   }
 
+  const logpowerSettingsWrapper = document.getElementById(
+    "logpower-settings-wrapper"
+  );
+  const logpowerSettingsBtn = document.getElementById("logpower-settings-btn");
+  if (logpowerSettingsBtn) {
+    logpowerSettingsBtn.addEventListener("click", () => {
+      logpowerSettingsWrapper.style.display = "flex";
+    });
+  }
+
+  const closeLogpowerSettingsBtn = document.querySelector(
+    ".close-logpower-settings-btn"
+  );
+  const logpowerSummaryRunResult =
+    document.getElementById("summary-run-result");
+  if (closeLogpowerSettingsBtn) {
+    closeLogpowerSettingsBtn.addEventListener("click", () => {
+      logpowerSettingsWrapper.style.display = "none";
+      logpowerSummaryRunResult.textContent = "";
+    });
+  }
+
   const settingsBtn = document.getElementById("settings-btn");
   if (settingsBtn) {
     settingsBtn.addEventListener("click", () => {
@@ -934,11 +971,20 @@ function initializeAllToggles() {
   const settings = [
     { toggleId: "pause-toggle", storageKey: "isPaused" },
     { toggleId: "live-pause-toggle", storageKey: "isLivePaused" },
+    { toggleId: "live-off-pause-toggle", storageKey: "isLiveOffPaused" },
     { toggleId: "category-pause-toggle", storageKey: "isCategoryPaused" },
     { toggleId: "live-title-pause-toggle", storageKey: "isLiveTitlePaused" },
     { toggleId: "watch-party-pause-toggle", storageKey: "isWatchPartyPaused" },
     { toggleId: "drops-pause-toggle", storageKey: "isDropsPaused" },
     { toggleId: "logpower-pause-toggle", storageKey: "isLogPowerPaused" },
+    {
+      toggleId: "logpower-summary-pause-toggle",
+      storageKey: "isLogPowerSummaryPaused",
+    },
+    {
+      toggleId: "logpower-display-pause-toggle",
+      storageKey: "isLogPowerDisplayPaused",
+    },
     { toggleId: "party-pause-toggle", storageKey: "isPartyPaused" },
     { toggleId: "restrict-pause-toggle", storageKey: "isRestrictPaused" },
     { toggleId: "video-pause-toggle", storageKey: "isVideoPaused" },
@@ -946,6 +992,10 @@ function initializeAllToggles() {
     { toggleId: "chzzk-lounge-pause-toggle", storageKey: "isLoungePaused" },
     { toggleId: "chzzk-banner-pause-toggle", storageKey: "isBannerPaused" },
     { toggleId: "live-keep-pause-toggle", storageKey: "isLiveKeepPaused" },
+    {
+      toggleId: "live-off-keep-pause-toggle",
+      storageKey: "isLiveOffKeepPaused",
+    },
     {
       toggleId: "category-keep-pause-toggle",
       storageKey: "isCategoryKeepPaused",
@@ -959,6 +1009,10 @@ function initializeAllToggles() {
       storageKey: "isWatchPartyKeepPaused",
     },
     { toggleId: "drops-keep-pause-toggle", storageKey: "isDropsKeepPaused" },
+    {
+      toggleId: "logpower-summary-keep-pause-toggle",
+      storageKey: "isLogPowerSummaryKeepPaused",
+    },
     { toggleId: "party-keep-pause-toggle", storageKey: "isPartyKeepPaused" },
     {
       toggleId: "restrict-keep-pause-toggle",
@@ -1015,6 +1069,28 @@ function setupToggle(toggleId, storageKey) {
       newToggleElement.checked = !isPaused;
     }
   });
+}
+
+/**
+ * 통나무 파워 관련 토글 스위치 초기화
+ * (isPaused가 아닌 'true/false'를 직접 저장하는 토글용)
+ */
+function initializeLogPowerToggles() {
+  const externalToggle = document.getElementById("logpower-external-toggle");
+  const externalStorageKey = "logpowerIncludeExternal";
+
+  if (externalToggle) {
+    // 1. 스토리지에서 현재 설정값을 가져와 토글의 체크 상태에 반영 (기본값: true)
+    chrome.storage.local.get({ [externalStorageKey]: true }, (data) => {
+      externalToggle.checked = !!data[externalStorageKey];
+    });
+
+    // 2. 토글 상태 변경 시 이벤트 처리
+    externalToggle.addEventListener("change", (event) => {
+      // isPaused와 달리, 체크된 상태(true/false)를 그대로 저장
+      chrome.storage.local.set({ [externalStorageKey]: event.target.checked });
+    });
+  }
 }
 
 /**
@@ -1401,6 +1477,7 @@ function createMemberElement(member, hostSVG) {
   const channelImg = document.createElement("img");
   channelImg.className = "party-member-img";
   channelImg.src = member.profileImageUrl;
+  channelImg.loading = "lazy";
   channelLink.appendChild(channelImg);
 
   const memberName = document.createElement("span");
@@ -1945,10 +2022,6 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     "displayLimit",
   ]);
 
-  // const history = notificationHistory;
-  // const liveStatusMap = _liveStatus ?? {};
-  // const partyStatusMap = _partyStatus ?? {};
-  // const partyDonationStatusMap = _partyDonationStatus ?? {};
   const displayLimit = typeof _displayLimit === "number" ? _displayLimit : 300;
 
   // 1) 필터링/표시 상한 계산
@@ -1976,6 +2049,10 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     } else if (currentFilter === "DONATION") {
       filteredHistory = displayHistory.filter(
         (item) => item.type === "DONATION_START" || item.type === "DONATION_END"
+      );
+    } else if (currentFilter === "LOGPOWER") {
+      filteredHistory = displayHistory.filter(
+        (item) => item.type === "LOGPOWER" || item.type === "LOGPOWER/SUMMARY"
       );
     } else {
       filteredHistory = displayHistory.filter(
@@ -2132,6 +2209,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
           markPartyDonationBtn.title = "파티 후원";
           break;
         case "LOGPOWER":
+        case "LOGPOWER/SUMMARY":
           markLogPowerBtn.style.display = "flex";
           markLogPowerBtn.style.alignItems = "center";
           markLogPowerBtn.title = "통나무 파워";
@@ -2289,6 +2367,9 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
       }
       if (currentFilter === "DONATION") {
         return item.type === "DONATION_START" || item.type === "DONATION_END";
+      }
+      if (currentFilter === "LOGPOWER") {
+        return item.type === "LOGPOWER" || item.type === "LOGPOWER/SUMMARY";
       }
       return item.type === currentFilter;
     };
@@ -3290,6 +3371,9 @@ function createNotificationNode(
   } else if (item.type === "LOGPOWER") {
     contentType = logPowerTitleSVG; //"🪵";
     contentTitle = item.channelName + "님의 통나무 파워를 획득했어요";
+  } else if (item.type === "LOGPOWER/SUMMARY") {
+    contentType = logPowerTitleSVG; //"🪵";
+    contentTitle = "통나무 파워 요약이 도착했어요";
   } else if (item.type === "LOUNGE") {
     contentType = loungeSVG; // "🧀";
     contentTitle = item.channelName + "님이 새 라운지 글을 작성했어요";
@@ -4025,7 +4109,7 @@ function createNotificationNode(
       totalAmount.className = "logpower-total-amount";
       totalAmount.innerHTML = `${
         item.channelName
-      }님 채널의 내 통나무 파워: ${logPowerSVG} ${newTotal.toLocaleString()}`;
+      }님 채널의 내 통나무 파워: ${makeLogPowerSVG()} ${newTotal.toLocaleString()}`;
 
       const ul = document.createElement("ul");
       ul.className = "logpower-claimed-list";
@@ -4047,6 +4131,107 @@ function createNotificationNode(
     }
 
     wrap.appendChild(msg);
+    messageDiv.append(wrap);
+  } else if (item.type === "LOGPOWER/SUMMARY") {
+    const wrap = document.createElement("div");
+    wrap.className = "logpower-summary";
+
+    // 헤더
+    const header = document.createElement("div");
+    header.className = "logpower-summary-header";
+    header.innerHTML = `
+    <div class="logpower-summary-meta">
+      <span class="badge">${item.label || ""}</span>
+      <div>
+        <span>총합 ${makeLogPowerSVG()} <b>${(
+      item.total ?? 0
+    ).toLocaleString()}</b></span>
+        <span class="sep">/</span>
+        <span>획득 횟수 <b>${(item.count ?? 0).toLocaleString()}</b>회</span>
+        <span class="sep">/</span>
+        <span>획득 채널 <b>${(
+          item.channels?.length ?? 0
+        ).toLocaleString()}</b>개</span>      
+      </div>
+    </div>
+  `;
+
+    // 목록 (배경에서 이미 total 내림차순 정렬 완료)
+    const list = document.createElement("ul");
+    list.className = "logpower-summary-list";
+    (item.channels || []).forEach((c) => {
+      const li = document.createElement("li");
+      li.className = "logpower-summary-item";
+
+      const total = Number(c.total || 0);
+      const external = Number(c.externalGain || 0);
+
+      let totalHtml = "";
+      totalHtml = `
+          <span class="stat stat-total" title="총 ${total.toLocaleString()}">
+            ${makeLogPowerSVG()} 
+            <b>${total.toLocaleString()}</b>
+          </span>
+        `;
+
+      li.innerHTML = `
+      <a class="logpower-channel-link" href="https://chzzk.naver.com/${
+        c.channelId
+      }" target="_blank" rel="noopener">
+        <img class="logpower-channel-img" src="${
+          c.channelImageUrl || "../icon_128.png"
+        }" loading="lazy" alt="${c.channelName}">
+        <span class="logpower-channel-name" title="${c.channelName}">${
+        c.channelName
+      }</span>
+      </a>
+      <div class="logpower-channel-stats">
+        ${totalHtml}
+        <span class="sep">/</span>
+      </div>
+    `;
+
+      const types = Array.isArray(c.typeBreakdown) ? c.typeBreakdown : [];
+      if (types.length > 0 || external > 0) {
+        const chips = document.createElement("span");
+        chips.className = "logpower-chip-types";
+
+        if (external > 0) {
+          const chip = document.createElement("span");
+          chip.className = "badge external-gain-chip";
+          chip.title = `기타 획득: ${external.toLocaleString()} (모바일, 다른 PC 또는 누락된 획득량)`;
+          // (현재 총 ${Number(
+          //   c.externalCurrentAmount || 0
+          // ).toLocaleString()} / 기준 ${Number(
+          //   c.externalKnownAmount || 0
+          // ).toLocaleString()})`;
+          chip.textContent = `기타 ${external.toLocaleString()}`;
+          chips.appendChild(chip);
+        }
+
+        types.forEach((tb) => {
+          if (!tb.claimTypeNorm) return;
+          if (tb.count === 0) return;
+
+          // '기타 획득'이 typeBreakdown에 이미 있다면 중복 표시 안 함
+          if (tb.claimTypeNorm === "기타 획득") return;
+
+          const chip = document.createElement("span");
+          chip.className = "badge";
+          chip.title = `${tb.claimTypeNorm}: ${(
+            tb.count ?? 0
+          ).toLocaleString()}회 / ${Number(tb.total || 0).toLocaleString()}`;
+          chip.textContent = `${tb.claimTypeNorm} ${tb.count}회`;
+          chips.appendChild(chip);
+        });
+        li.querySelector(".logpower-channel-stats").appendChild(chips);
+      }
+      // 리스트 내부 클릭은 전체 알림 클릭(읽음 처리 등)과 분리
+      li.addEventListener("click", (e) => e.stopPropagation());
+      list.appendChild(li);
+    });
+
+    wrap.append(header, list);
     messageDiv.append(wrap);
   } else if (item.type === "LOUNGE") {
     const span = document.createElement("span");
@@ -4170,7 +4355,7 @@ function createNotificationNode(
 
     div.append(liveChannelImgWrapper, contentDiv, deleteBtn);
   } else {
-    if (item.type === "BANNER") {
+    if (item.type === "BANNER" || item.type === "LOGPOWER/SUMMARY") {
       const emptyChannelImg = document.createElement("span");
       emptyChannelImg.className = "empty-channel-img";
 
@@ -4183,6 +4368,73 @@ function createNotificationNode(
   }
 
   return div;
+}
+
+function initializeBadgeClickAction() {
+  const radios = document.querySelectorAll('input[name="logpowerBadgeAction"]');
+  const storageKey = "logpowerBadgeAction";
+
+  // 1. 스토리지에서 저장된 값을 불러와 라디오 버튼에 반영
+  chrome.storage.local.get({ [storageKey]: "popup" }, (data) => {
+    radios.forEach((radio) => {
+      if (radio.value === data[storageKey]) {
+        radio.checked = true;
+      }
+    });
+  });
+
+  // 2. 라디오 버튼 변경 시 스토리지에 즉시 저장
+  radios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (radio.checked) {
+        chrome.storage.local.set({ [storageKey]: radio.value });
+      }
+    });
+  });
+}
+
+function wireSummaryManualButtons() {
+  const result = document.getElementById("summary-run-result");
+  const force = document.getElementById("summary-force-checkbox");
+
+  document.querySelectorAll(".summary-run").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const kind = btn.dataset.kind; // daily|weekly|monthly|year_end
+      const anchor = btn.dataset.anchor || "previous";
+      const label = btn.textContent;
+      const restore = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = label + " 발행 중…";
+      result.textContent = "";
+
+      try {
+        const resp = await chrome.runtime.sendMessage({
+          type: "RUN_LOGPOWER_SUMMARY_MANUAL",
+          kinds: [kind],
+          anchor,
+          force: !!(force && force.checked),
+        });
+
+        if (!resp?.ok) throw new Error(resp?.error || "FAILED");
+
+        // 결과 요약
+        const r = resp.results?.[0];
+        if (r?.executed) {
+          result.textContent = `${label} 요약 알림을 발행했어요. (${r.key})`;
+        } else {
+          result.textContent = `${label} 요약 알림은 이미 발행된 알림입니다. (${r?.key})`;
+        }
+
+        // 배지/목록 등 갱신
+        chrome.runtime.sendMessage({ type: "UPDATE_BADGE" });
+      } catch (e) {
+        result.textContent = "발행 실패: " + (e?.message || e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = restore;
+      }
+    });
+  });
 }
 
 // === 사운드 파일 목록 ===
@@ -4431,7 +4683,7 @@ async function saveSoundSettings(next) {
   await chrome.storage.local.set({ soundSettings: next });
 }
 
-async function buildRow({ key, label }, settings) {
+async function buildRow({ key, label }, settings, soundOptions) {
   const row = document.createElement("div");
   row.className = "row";
 
@@ -4456,8 +4708,7 @@ async function buildRow({ key, label }, settings) {
 
   const sel = document.createElement("select");
 
-  const options = await getCombinedSoundOptions();
-  for (const { value, label } of options) {
+  for (const { value, label } of soundOptions) {
     const opt = document.createElement("option");
     opt.value = value; // builtin: "notification_1.wav", custom: "idb:123"
     opt.textContent = label;
@@ -4735,9 +4986,19 @@ async function initializeSoundSettings() {
   const render = async () => {
     grid.innerHTML = "";
     const settings = await loadSoundSettings();
-    for (const t of SOUND_TYPES) {
-      grid.appendChild(await buildRow(t, settings));
-    }
+    const soundOptions = await getCombinedSoundOptions();
+
+    // 모든 buildRow 프로미스를 배열로 만듦
+    const rowPromises = SOUND_TYPES.map((t) =>
+      buildRow(t, settings, soundOptions)
+    );
+
+    // Promise.all로 모든 UI 조립을 병렬로 처리
+    const rows = await Promise.all(rowPromises);
+
+    // 완성된 모든 row를 한 번에 DOM에 추가
+    rows.forEach((row) => grid.appendChild(row));
+
     grid.appendChild(buildMasterRow());
     await wireMasterControls();
   };

@@ -88,13 +88,18 @@ svg {
   color: white;
 }
 
-#controls-wrapper {
+#controls-wrapper,
+#logpower-controls-wrapper {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
   width: 420px;
   height: 500px;
   color: #000000c9;
+}
+
+#logpower-controls-wrapper {
+  align-content: flex-start;
 }
 
 [id*="-control-wrapper"] {
@@ -116,6 +121,26 @@ svg {
   font-weight: bold;
   font-size: 12px;
   word-break: keep-all;
+}
+
+#logpower-badge-control-wrapper {
+  flex-direction: column;
+  justify-content: space-around;
+  width: 100%;
+}
+
+.logpower-badge-control-label {
+  width: fit-content;
+}
+
+.radio-wrapper label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.radio-wrapper input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
 }
 
 #control-wrapper {
@@ -238,7 +263,8 @@ svg {
   transform: translate(60px, 65px);
 }
 
-#settings-wrapper h1 {
+#settings-wrapper h1,
+#logpower-settings-wrapper h1 {
   margin-top: -10px;
   margin-bottom: 5px;
   font-size: 20px;
@@ -318,7 +344,8 @@ input:checked + .slider:before {
   justify-content: space-around;
 }
 
-#settings-wrapper {
+#settings-wrapper,
+#logpower-settings-wrapper {
   display: none;
   inset: 0px;
   background: rgba(0, 0, 0, 0.45);
@@ -1158,6 +1185,7 @@ input:checked + .slider:before {
 
 .close-btn,
 .close-settings-btn,
+.close-logpower-settings-btn,
 .close-display-settings-btn {
   display: flex;
   justify-content: center;
@@ -1177,6 +1205,7 @@ input:checked + .slider:before {
 
 .close-btn:hover,
 .close-display-settings-btn:hover,
+.close-logpower-settings-btn:hover,
 .close-settings-btn:hover {
   background-color: #dd5e5eea;
   color: white;
@@ -1568,6 +1597,7 @@ body.folded-view #toggle-fold-btn .icon-unfold {
 /* 툴팁 텍스트 박스 스타일 */
 #control-wrapper label.switch,
 #off-all-notification-btn,
+#logpower-settings-btn,
 #sound-settings-open,
 #settings-btn,
 #display-limit-settings-btn,
@@ -1577,13 +1607,14 @@ body.folded-view #toggle-fold-btn .icon-unfold {
 }
 #control-wrapper label.switch .tooltip-text,
 #off-all-notification-btn .tooltip-text,
+#logpower-settings-btn .tooltip-text,
 #sound-settings-open .tooltip-text,
 #settings-btn .tooltip-text,
 #display-limit-settings-btn .tooltip-text,
 #bookmark-btn .tooltip-text,
 #toggle-fold-btn .tooltip-text {
   visibility: hidden; /* 평소에는 숨김 */
-  width: 50px;
+  width: 53px;
   background-color: #e1e1e5;
   color: #202224;
   text-align: center;
@@ -1610,7 +1641,7 @@ body.folded-view #toggle-fold-btn .icon-unfold {
 #bookmark-btn .folded-tooltip-text,
 #toggle-fold-btn .folded-tooltip-text {
   visibility: hidden; /* 평소에는 숨김 */
-  width: 50px;
+  width: 53px;
   background-color: #e1e1e5;
   color: #202224;
   text-align: center;
@@ -1636,6 +1667,7 @@ body.folded-view #toggle-fold-btn .icon-unfold {
 /* 컨테이너에 마우스를 올렸을 때 툴팁 텍스트를 보이게 함 */
 #control-wrapper label.switch:hover .tooltip-text,
 #off-all-notification-btn:hover .tooltip-text,
+#logpower-settings-btn:hover .tooltip-text,
 #sound-settings-open:hover .tooltip-text,
 #settings-btn:hover .tooltip-text,
 #display-limit-settings-btn:hover .tooltip-text,
@@ -2136,4 +2168,210 @@ body.folded-view #toggle-fold-btn .icon-unfold {
 
 #bookmarks-panel::-webkit-scrollbar-thumb:hover {
   background-color: #a8a8a8; /* 마우스를 올렸을 때 핸들 색상 */
+}
+
+[id^="logpower-"][id$="-control-wrapper"] {
+  width: 198px;
+}
+[class^="logpower-"][class$="-control-label"] {
+  width: 130px;
+}
+
+/* 요약 카드 */
+.notification-item[data-type="LOGPOWER/SUMMARY"] .empty-channel-img {
+  width: 3px;
+  height: 3px;
+  margin-right: 2px;
+}
+.logpower-summary {
+  display: grid;
+  gap: 8px;
+}
+.logpower-summary-header {
+  display: grid;
+  gap: 4px;
+}
+.logpower-summary-meta {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.logpower-summary-meta div {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+}
+.logpower-summary-meta svg {
+  width: 14px;
+  height: 14px;
+}
+.logpower-summary-meta .badge {
+  color: rgb(0, 153, 98);
+  background-color: rgba(164, 225, 199, 0.4);
+  font-weight: bold;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(164, 225, 199);
+  border-radius: 3px;
+  padding: 2px;
+  font-size: 11px;
+}
+
+.logpower-summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.logpower-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+}
+.logpower-summary-item .logpower-channel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: 30%;
+  text-decoration: none;
+  color: inherit;
+}
+.logpower-summary-item .logpower-channel-img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.logpower-summary-item .logpower-channel-name {
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.logpower-summary-item .logpower-channel-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.logpower-summary-meta div span:first-child,
+.logpower-summary-item .stat-total {
+  color: rgb(122, 78, 19);
+  font-weight: bold;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(133, 68, 24, 0.5);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.logpower-summary-item .stat-total svg {
+  width: 14px;
+  height: 14px;
+}
+.logpower-summary-item .stat-total b {
+  font-weight: 700;
+}
+.logpower-summary-meta div {
+  margin-right: 10px;
+}
+.logpower-summary-meta .sep,
+.logpower-summary-item .sep {
+  opacity: 0.5;
+}
+.logpower-summary-item .logpower-chip-types {
+  display: flex;
+  gap: 4px;
+}
+.logpower-summary-item .logpower-chip-types .badge {
+  color: rgb(0, 153, 98);
+  font-weight: bold;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(164, 225, 199);
+  border-image: initial;
+  border-radius: 3px;
+  padding: 2px;
+  font-size: 10px;
+}
+#logpower-summary-manual-wrapper,
+#logpower-settings-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  margin: 3px 6px;
+  line-height: 1.4;
+  border-radius: 8px;
+  backdrop-filter: blur(1px);
+  background-color: #ffffffb1;
+  box-shadow: 0px 0px 14px 3px #beeefaa6;
+}
+#logpower-settings-info {
+  background-color: #5ad9bab1;
+  color: white;
+}
+#logpower-summary-manual-wrapper #summary-force-help {
+  font-size: 11px;
+  color: #666;
+  line-height: 1.4;
+  padding: 6px 8px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+  width: auto;
+  text-align: left;
+}
+
+#logpower-summary-manual-wrapper #summary-force-help b {
+  color: #000;
+}
+.logpower-summary-manual-label {
+  font-size: 12px;
+  font-weight: bold;
+}
+.logpower-summary-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.summary-force {
+  display: flex;
+  align-items: center;
+}
+#summary-force-checkbox {
+  cursor: pointer;
+}
+.summary-run {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--Border-Neutral-Strong-Static);
+  background: var(--Background-Neutral-Base);
+  cursor: pointer;
+}
+.summary-run {
+  background-color: #ffffffc9;
+  border: none;
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+.summary-run:hover {
+  background-color: #fff;
+}
+.summary-run[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+.help-text {
+  font-size: 11px;
+  color: #888;
 }

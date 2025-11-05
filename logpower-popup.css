@@ -1,0 +1,222 @@
+#conchzzk-live-logpower {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 5px;
+  padding: 14px 4px;
+  height: 16px;
+  margin-left: 5px;
+  color: var(--Content-Neutral-Cool-Strong);
+  cursor: pointer;
+}
+#conchzzk-live-logpower:hover {
+  background: var(--Surface-Interaction-Lighten-Hovered);
+}
+/* 툴팁 텍스트 박스 스타일 */
+.logpower-tooltip .tooltip-text {
+  visibility: hidden; /* 평소에는 숨김 */
+  width: 76px;
+  background-color: var(--Surface-Neutral-Base);
+  color: var(--Content-Neutral-Cool-Stronger);
+  box-shadow: 0 2px 8px 0 var(--color-shadow-layer04-02),
+    0 0 2px 0 var(--color-shadow-layer04-01);
+  text-align: center;
+  padding: 7px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 400;
+
+  /* 위치 설정 */
+  position: absolute;
+  z-index: 9999; /* 다른 요소 위에 보이도록 z-index 설정 */
+  left: 50%;
+  bottom: 116%;
+  margin-left: -38px;
+
+  /* 부드럽게 나타나는 효과 */
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+/* 컨테이너에 마우스를 올렸을 때 툴팁 텍스트를 보이게 함 */
+#conchzzk-live-logpower:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+.chzzk_power_popup_layer {
+  position: absolute;
+  left: 0px;
+  top: -110px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 99999;
+  background: none;
+  pointer-events: none;
+}
+
+.chzzk_power_popup_container {
+  position: relative;
+  width: 94%;
+  max-width: 490px;
+  height: auto;
+  min-height: 150px;
+  border-radius: 12px;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-height: 100%;
+  overflow: visible;
+  color: var(--Content-Neutral-Cool-Strong);
+  background: var(--Background-Neutral-Base);
+  box-shadow: 0 4px 4px 0 var(--Shadow-Strong),
+    0 4px 12px 4px var(--Shadow-Base);
+}
+.chzzk_power_popup_action {
+  align-self: stretch;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding: 5px;
+  position: absolute;
+  top: 0;
+}
+.chzzk_power_popup_close_button {
+  background: none;
+  border: none;
+  width: 25px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--Content-Neutral-Cool-Weak);
+  cursor: pointer;
+}
+.chzzk_power_popup_close_button svg {
+  width: 18px;
+  height: 18px;
+}
+.chzzk_power_popup_refresh_button {
+  background: none;
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.chzzk_power_popup_refresh_button svg {
+  fill: var(--Content-Neutral-Cool-Weak);
+}
+.chzzk_power_popup_close_button:hover,
+.chzzk_power_popup_refresh_button:hover {
+  background: var(--Surface-Interaction-Lighten-Hovered);
+}
+.chzzk_power_popup_table {
+  width: 100%;
+  overflow-y: auto;
+  max-height: 410px;
+  display: block;
+  padding: 15px 15px 7px 15px;
+}
+.total-logpower {
+  width: 95%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+  padding-right: 7px;
+}
+.total-logpower span {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  border-radius: 3px;
+  padding: 0px 2px;
+  border: 1px solid var(--Border-Neutral-Strong-Static);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.channel-logpower {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  font-size: 15px;
+  border-top: 1px solid rgba(var(--color-border-01-rgb), 0.16);
+  padding-top: 5px;
+  margin: 5px auto;
+}
+.channel-logpower a {
+  padding: 1px 2px;
+  border-radius: 5px;
+}
+.channel-logpower a:hover {
+  background: var(--Surface-Interaction-Lighten-Hovered);
+}
+.logpower-limit-notice {
+  color: #aaa;
+  font-size: 11px;
+}
+.logpower-info {
+  color: #aaa;
+  font-size: 11px;
+  margin-bottom: 7px;
+}
+.channel-logpower-table {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.logpower-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.logpower-row div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.logpower-row div span:first-child {
+  font-weight: bold;
+  width: 24px;
+  text-align: right;
+  font-size: 17px;
+}
+.logpower-row div span:last-child {
+  font-weight: bold;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+}
+.logpower-row div img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  user-select: none;
+}
+.logpower-row span:last-child {
+  font-weight: bold;
+  font-size: 15px;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.logpower-error {
+  color: #f66;
+  font-size: 16px;
+  padding: 32px 0;
+}

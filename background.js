@@ -21,6 +21,7 @@ const CATEGORY_URL_PREFIX = "https://chzzk.naver.com/category";
 const LOG_POWER_BASE = CHZZK_CHANNELS_API_URL_PREFIX;
 
 const CHECK_ALARM_NAME = "chzzkAllCheck";
+const DAILY_OPENING_ALARM = "daily-opening";
 
 const BOOKMARK_LIVE_KEY = "bookmarkLive";
 const BOOKMARK_REFRESH_ALARM = "bookmarkLiveRefresh";
@@ -30,9 +31,22 @@ const CHZZK_URL = "https://chzzk.naver.com";
 const AUTH_COOKIE_NAME = "NID_AUT";
 const HISTORY_LIMIT = 1500;
 
+const LOGPOWER_CATCHUP_BASELINE_KEY = "logpowerCatchupBaselineAt";
+
+const SUMMARY_PAUSE_KEY = "isLogPowerSummaryPaused";
+const SUMMARY_KEEP_PAUSE_KEY = "isLogPowerSummaryKeepPaused";
+
+// 저장 키
+const LOGPOWER_KNOWN_TOTALS_KEY = "logpower_knownTotals"; // { channelId: { amount, ts, source } }
+const LOGPOWER_LAST_PROCESSED_AT = "logpower_lastProcessedAt_by_channel"; // { channelId: ts }
+const LOGPOWER_EXTERNAL_SUMMARY_KEY = "logpower_external_summary_temp"; // 임시/마지막 요약 저장
+const LOGPOWER_CLIENT_CLAIMS_KEY = "logpower_client_claims"; // { channelId: [{ claimId, amount, ts }, ...], ... }
+
 // *** 실행 잠금을 위한 전역 변수 ***
 let isChecking = false;
 const donationInfoTtlMap = new Map();
+
+let globalDismissedSet = new Set();
 
 // ==== Adaptive Concurrency & Staggered Scheduler ====
 const ADAPTIVE_DEFAULT = {
@@ -128,6 +142,232 @@ function _getTaskPlan(t) {
   };
 }
 
+// ----- 유틸: storage load/save -----
+async function _loadJsonKey(key, defaultValue = {}) {
+  const obj = await chrome.storage.local.get(key);
+  return obj[key] || defaultValue;
+}
+async function _saveJsonKey(key, value) {
+  await chrome.storage.local.set({ [key]: value });
+}
+
+// (2) 기존 핸들러 내부에서 호출할 기록 저장 함수
+// 호출 시: await _recordClientClaims(channelId, succeeded, nowTs);
+// - succeeded: results.filter(r => r.ok) (각 r 에는 claimId, amount)
+// 또는 claimedList (더 풍부한 메타가 있으면 그걸 넘겨도 됨)
+async function _recordClientClaims(
+  channelId,
+  succeededResults = [],
+  nowTs = Date.now()
+) {
+  try {
+    const chId = String(channelId);
+    const recs = await _loadJsonKey(LOGPOWER_CLIENT_CLAIMS_KEY, {});
+    if (!recs[chId]) recs[chId] = [];
+
+    for (const r of succeededResults) {
+      if (!r?.claimId) continue;
+      recs[chId].push({
+        claimId: r.claimId,
+        amount: Number(r.amount || 0),
+        ts: nowTs,
+        claimType: String(r.claimType || "").toUpperCase(),
+      });
+    }
+
+    // 보존 기간 제한(예: 90일)
+    const KEEP_MS = 90 * 24 * 3600 * 1000;
+    const cutoff = nowTs - KEEP_MS;
+    for (const cid of Object.keys(recs)) {
+      recs[cid] = recs[cid].filter((it) => Number(it.ts || 0) >= cutoff);
+    }
+
+    await _saveJsonKey(LOGPOWER_CLIENT_CLAIMS_KEY, recs);
+  } catch (e) {
+    console.warn("_recordClientClaims failed:", e);
+  }
+}
+
+// (3) claims 합계 계산 보조 (computeExternal에서 사용)
+function _sumClaimsForChannelInRange(
+  clientClaimsMap,
+  channelId,
+  sinceTs = 0,
+  toTs = Date.now()
+) {
+  const recs = (clientClaimsMap && clientClaimsMap[channelId]) || [];
+  let sum = 0;
+  for (const r of recs) {
+    const ts = Number(r.ts || 0);
+    if (ts >= sinceTs && ts <= toTs) {
+      const amount = Number(r.amount || 0);
+      sum += amount;
+
+      // 1시간 보상이면 5분 보상치(1:1.2)를 추가 합산
+      const claimType = String(r.claimType || "").toUpperCase();
+      if (claimType === "WATCH_1_HOUR") {
+        sum += amount * 1.2;
+      }
+    }
+  }
+  return sum;
+}
+
+// (4) 핵심: 스냅샷 차분 방식 기타획득 계산 함수
+// summary 생성시에 호출: const external = await computeExternalGainsForSummary();
+async function computeExternalGainsForSummary({
+  onlyActiveChannels = false,
+  noiseThreshold = 1,
+  transient = false,
+} = {}) {
+  try {
+    // fetchBalancesNow() 는 기존 background에 있는 함수를 재사용
+    const { arr } = await fetchBalancesNow();
+    if (!Array.isArray(arr)) return [];
+
+    const nowTs = Date.now();
+    const currentMap = Object.fromEntries(
+      arr.map((x) => [
+        String(x.channelId),
+        {
+          channelId: String(x.channelId),
+          amount: Number(x.amount || 0),
+          channelName: x.channelName || "",
+          channelImageUrl: x.channelImageUrl || "",
+          verifiedMark: !!x.verifiedMark,
+        },
+      ])
+    );
+
+    const knownTotals = await _loadJsonKey(LOGPOWER_KNOWN_TOTALS_KEY, {});
+    const lastProcessed = await _loadJsonKey(LOGPOWER_LAST_PROCESSED_AT, {});
+    const clientClaims = await _loadJsonKey(LOGPOWER_CLIENT_CLAIMS_KEY, {});
+
+    const externalSummary = [];
+
+    for (const [chId, cur] of Object.entries(currentMap)) {
+      if (onlyActiveChannels) {
+        // 필요시 활성 채널 필터 추가 (현재는 pass)
+      }
+
+      const curAmt = Number(cur.amount || 0);
+      const known = knownTotals[chId] || { amount: 0, ts: 0 };
+
+      let delta = curAmt - Number(known.amount || 0);
+
+      // client가 수령한 합계(known 기준 이후 to now) 만큼 차감
+      const sinceTs = Number(lastProcessed[chId] || 0) || 0;
+      const claimedByThisClient = _sumClaimsForChannelInRange(
+        clientClaims,
+        chId,
+        sinceTs,
+        nowTs
+      );
+      delta -= claimedByThisClient;
+
+      if (delta > noiseThreshold) {
+        externalSummary.push({
+          channelId: chId,
+          channelName: cur.channelName || "",
+          channelImageUrl: cur.channelImageUrl || "",
+          externalGain: Math.round(delta),
+          knownAmount: Number(known.amount || 0),
+          currentAmount: curAmt,
+        });
+      }
+
+      // 기준값/lastProcessed는 항상 최신으로 동기화
+      knownTotals[chId] = { amount: curAmt, ts: nowTs, source: "auto" };
+      lastProcessed[chId] = nowTs;
+    }
+
+    // 저장
+    if (!transient) {
+      await Promise.all([
+        _saveJsonKey(LOGPOWER_KNOWN_TOTALS_KEY, knownTotals),
+        _saveJsonKey(LOGPOWER_LAST_PROCESSED_AT, lastProcessed),
+        _saveJsonKey(LOGPOWER_EXTERNAL_SUMMARY_KEY, externalSummary),
+      ]);
+    }
+
+    return externalSummary;
+  } catch (e) {
+    console.error("computeExternalGainsForSummary failed:", e);
+    return [];
+  }
+}
+
+const CLAIM_TYPE_ALIAS = {
+  WATCH_1_HOUR: "시청 1시간",
+  WATCH_5_MINUTE: "시청 5분",
+  FOLLOW: "팔로우",
+};
+
+function normalizeClaimType(ct) {
+  const raw = String(ct || "").toUpperCase();
+  if (CLAIM_TYPE_ALIAS[raw]) return CLAIM_TYPE_ALIAS[raw];
+  return raw
+    .split("_")
+    .map((s) => s.charAt(0) + s.slice(1).toLowerCase())
+    .join(" ");
+}
+
+async function ensureTodayOpeningSnapshotBG() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+
+  const dailyKey = `logpower_open_${yyyy}-${mm}-${dd}`;
+  const got = await chrome.storage.local.get(dailyKey);
+  if (!got[dailyKey]) {
+    const { arr } = await fetchBalancesNow();
+    const openMap = Object.fromEntries(
+      arr.map((x) => [
+        x.channelId,
+        {
+          amount: Number(x.amount) || 0,
+          name: x.channelName || "",
+          imageUrl: x.channelImageUrl || "",
+          verifiedMark: !!x.verifiedMark,
+        },
+      ])
+    );
+    const midnight = new Date(yyyy, today.getMonth(), today.getDate());
+    const minutesLate = Math.round((today - midnight) / 60000);
+    await chrome.storage.local.set({
+      [dailyKey]: { ts: Date.now(), map: openMap, late: minutesLate > 30 },
+    });
+  }
+
+  // 월초(1일) → 월간 핀
+  if (dd === "01") {
+    const monthKey = `logpower_open_month_${yyyy}-${mm}`;
+    const store = await chrome.storage.local.get(monthKey);
+    if (!store[monthKey]) {
+      const daily = (await chrome.storage.local.get(dailyKey))[dailyKey];
+      if (daily) await chrome.storage.local.set({ [monthKey]: daily });
+    }
+  }
+
+  // 연초(1월 1일) → 연간 핀
+  if (mm === "01" && dd === "01") {
+    const yearKey = `logpower_open_year_${yyyy}`;
+    const store = await chrome.storage.local.get(yearKey);
+    if (!store[yearKey]) {
+      const daily = (await chrome.storage.local.get(dailyKey))[dailyKey];
+      if (daily) await chrome.storage.local.set({ [yearKey]: daily });
+    }
+  }
+
+  // 저장 직후 오래된 키 정리
+  await cleanupOpeningSnapshots({
+    keepDailyDays: 45,
+    keepMonths: 15,
+    keepYears: 3,
+  });
+}
+
 // --- 초기 로그인 상태를 확인하고 아이콘을 설정하는 함수 ---
 async function checkInitialLoginStatus() {
   try {
@@ -166,12 +406,156 @@ chrome.cookies.onChanged.addListener((changeInfo) => {
   }
 });
 
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area !== "local" || !changes[SUMMARY_PAUSE_KEY]) return;
+
+  if (area === "local" && changes.dismissedNotificationIds) {
+    const arr = changes.dismissedNotificationIds.newValue || [];
+    globalDismissedSet = new Set(arr);
+  }
+
+  const paused = changes[SUMMARY_PAUSE_KEY].newValue === true;
+
+  if (paused) {
+    await chrome.alarms.clear(LOGPOWER_SUMMARY_ALARM);
+    await chrome.alarms.clear(LOGPOWER_CATCHUP_ALARM);
+  } else {
+    // 켜질 때 알람/캐치업 재개
+    chrome.alarms.create(LOGPOWER_SUMMARY_ALARM, {
+      when: atNextLocalTime(0, 5),
+      periodInMinutes: 24 * 60,
+    });
+
+    const { logpowerSummaryLastRun = {} } = await chrome.storage.local.get(
+      "logpowerSummaryLastRun"
+    );
+    if (Object.keys(logpowerSummaryLastRun).length === 0) {
+      // 최초 켜짐 시점 이후만 캐치업하도록 베이스라인 기록
+      await chrome.storage.local.set({
+        [LOGPOWER_CATCHUP_BASELINE_KEY]: Date.now(),
+      });
+    }
+
+    await ensureCatchupSchedule(new Date());
+  }
+});
+
+const LOGPOWER_SUMMARY_ALARM = "logpower:summary:daily";
+
+function atNextLocalTime(h = 0, m = 5) {
+  const now = new Date();
+  const t = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    h,
+    m,
+    0,
+    0
+  );
+  if (t <= now) t.setDate(t.getDate() + 1);
+  return t.getTime();
+}
+// 자정+5분에 매일 갱신(알람)
+function minutesUntilNext00_05() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(0, 5, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  return Math.ceil((next - now) / 60000);
+}
+async function ensureDailyOpeningAlarm() {
+  try {
+    const existing = await chrome.alarms.get(DAILY_OPENING_ALARM);
+    if (existing) return; // 이미 있으면 그대로
+  } catch (e) {
+    // 일부 환경에서 get 실패 시 그대로 재생성 쪽으로 진행
+    console.warn("[daily-opening] alarms.get failed:", e);
+  }
+
+  // 최소 1분 보장
+  const delay = Math.max(1, minutesUntilNext00_05());
+  chrome.alarms.create(DAILY_OPENING_ALARM, {
+    delayInMinutes: delay,
+    periodInMinutes: 24 * 60, // 매일 반복
+  });
+  console.log("[daily-opening] alarm (re)created, first in", delay, "min");
+}
+async function cleanupOpeningSnapshots({
+  keepDailyDays = 45,
+  keepMonths = 15,
+  keepYears = 3,
+} = {}) {
+  const all = await chrome.storage.local.get(null);
+
+  const dailyPrefix = "logpower_open_"; // YYYY-MM-DD
+  const monthPrefix = "logpower_open_month_"; // YYYY-MM
+  const yearPrefix = "logpower_open_year_"; // YYYY
+
+  const now = new Date();
+
+  // cutoff 계산
+  const dailyCutoff = new Date(now.getTime() - keepDailyDays * 86400000)
+    .toISOString()
+    .slice(0, 10); // YYYY-MM-DD
+
+  const monthCutoff = (() => {
+    const d = new Date(now.getFullYear(), now.getMonth() + 1 - keepMonths, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // YYYY-MM
+  })();
+
+  const yearCutoff = String(now.getFullYear() + 1 - keepYears); // YYYY
+
+  const toRemove = [];
+
+  for (const k of Object.keys(all)) {
+    if (k.startsWith(yearPrefix)) {
+      const y = k.slice(yearPrefix.length, yearPrefix.length + 4); // YYYY
+      if (y < yearCutoff) toRemove.push(k);
+      continue;
+    }
+    if (k.startsWith(monthPrefix)) {
+      const ym = k.slice(monthPrefix.length, monthPrefix.length + 7); // YYYY-MM
+      if (ym < monthCutoff) toRemove.push(k);
+      continue;
+    }
+    if (k.startsWith(dailyPrefix)) {
+      // 제외: 월간핀/연간핀 접두사와 구분되게 prefix를 정확히 비교했으니 daily만 여기 도착
+      const ymd = k.slice(dailyPrefix.length, dailyPrefix.length + 10); // YYYY-MM-DD
+      if (ymd < dailyCutoff) toRemove.push(k);
+      continue;
+    }
+  }
+
+  if (toRemove.length) {
+    await chrome.storage.local.remove(toRemove);
+  }
+}
+
 // --- 확장 프로그램 설치 시 알람 생성 ---
 chrome.runtime.onInstalled.addListener(async (details) => {
   chrome.alarms.create(CHECK_ALARM_NAME, {
     periodInMinutes: 1,
     when: Date.now() + 1000,
   });
+
+  chrome.alarms.create(LOGPOWER_SUMMARY_ALARM, {
+    when: atNextLocalTime(0, 5),
+    periodInMinutes: 24 * 60,
+  });
+  // '처음'일 때만 baseline 기록
+  const { logpowerSummaryLastRun = {} } = await chrome.storage.local.get(
+    "logpowerSummaryLastRun"
+  );
+  if (Object.keys(logpowerSummaryLastRun).length === 0) {
+    await chrome.storage.local.set({
+      [LOGPOWER_CATCHUP_BASELINE_KEY]: Date.now(),
+    });
+  }
+  await ensureCatchupSchedule(new Date());
+  ensureTodayOpeningSnapshotBG();
+  ensureDailyOpeningAlarm();
+  cleanupOpeningSnapshots();
 
   chrome.alarms.create(BOOKMARK_REFRESH_ALARM, {
     periodInMinutes: 1,
@@ -181,202 +565,14 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // --- 마이그레이션 로직 ---
   // 설치 또는 업데이트 시에만 실행
   if (details.reason === "install" || details.reason === "update") {
-    const { migrated_v2 } = await chrome.storage.local.get("migrated_v2");
-    if (migrated_v2) await chrome.storage.local.remove("migrated_v2");
-
     const { migrated_v3 } = await chrome.storage.local.get("migrated_v3");
-    if (!migrated_v3) {
-      const { notificationHistory = [] } = await chrome.storage.local.get(
-        "notificationHistory"
-      );
-      let changed = false;
-
-      // 정규표현식을 사용하여 HTML에서 카테고리와 제목을 추출
-      const categoryRegex = /<span[^>]*>([^<]+)<\/span>/;
-
-      for (const item of notificationHistory) {
-        if (item.type === "POST") {
-          if (!item.excerpt) {
-            item.excerpt = makeExcerpt(item.content || "");
-            changed = true;
-          }
-          if (!item.attachLayout) {
-            item.attachLayout = "layout-default";
-            changed = true;
-          }
-        }
-
-        if (item.type === "VIDEO") {
-          if (!item.videoCategoryValue) {
-            item.videoCategoryValue = "기타";
-            changed = true;
-          }
-        }
-
-        if (item.type === "LIVE" && typeof item.liveTitle === "undefined") {
-          const content = item.content || "";
-          const categoryMatch = content.match(categoryRegex);
-
-          // 정규식으로 카테고리와 제목을 성공적으로 분리
-          if (categoryMatch) {
-            item.liveCategoryValue = categoryMatch[1];
-            // HTML 태그를 제거하여 순수 제목만 추출
-            item.liveTitle = content.replace(categoryRegex, "").trim();
-          } else {
-            // 분리 실패 시 content를 그대로 liveTitle로 사용
-            item.liveCategoryValue = "기타";
-            item.liveTitle = content;
-          }
-
-          // watchPartyTag, dropsCampaignNo 새로운 필드 초기화
-          item.watchPartyTag = null;
-          item.dropsCampaignNo = null;
-          item.paidPromotion = false;
-
-          delete item.content;
-
-          changed = true;
-        }
-
-        if (
-          item.type === "CATEGORY" &&
-          typeof item.oldCategory === "undefined"
-        ) {
-          const content = item.content || "";
-          const parts = content.split(" → ");
-          if (parts.length === 2) {
-            item.oldCategory = parts[0].replace(/<[^>]*>/g, "").trim(); // HTML 태그 제거
-            item.newCategory = parts[1].replace(/<[^>]*>/g, "").trim(); // HTML 태그 제거
-          } else {
-            item.oldCategory = "없음";
-            item.newCategory = "기타";
-          }
-
-          delete item.content;
-
-          changed = true;
-        }
-
-        if (
-          item.type === "CATEGORY/LIVETITLE" &&
-          typeof item.oldCategory === "undefined"
-        ) {
-          const content = item.content || "";
-          const parts = content.split(" → ");
-
-          if (parts.length === 2) {
-            const oldPart = parts[0];
-            const newPart = parts[1];
-
-            const oldCategoryMatch = oldPart.match(categoryRegex);
-            const newCategoryMatch = newPart.match(categoryRegex);
-
-            item.oldCategory = oldCategoryMatch ? oldCategoryMatch[1] : "없음";
-            item.oldLiveTitle = oldPart.replace(categoryRegex, "").trim();
-
-            item.newCategory = newCategoryMatch ? newCategoryMatch[1] : "기타";
-            item.newLiveTitle = newPart.replace(categoryRegex, "").trim();
-          }
-
-          delete item.content;
-
-          changed = true;
-        }
-
-        if (item.type === "ADULT" && typeof item.liveTitle === "undefined") {
-          const content = item.content || "";
-          const categoryMatch = content.match(categoryRegex);
-
-          // 정규식으로 카테고리와 제목을 성공적으로 분리
-          if (categoryMatch) {
-            item.liveCategoryValue = categoryMatch[1];
-            // HTML 태그를 제거하여 순수 제목만 추출
-            item.liveTitle = content.replace(categoryRegex, "").trim();
-          } else {
-            // 분리 실패 시 content를 그대로 liveTitle로 사용
-            item.liveCategoryValue = "기타";
-            item.liveTitle = content;
-          }
-
-          delete item.content;
-
-          changed = true;
-        }
-
-        if (item.type === "LOUNGE" && typeof item.channelId === "undefined") {
-          item.channelId = "c42cd75ec4855a9edf204a407c3c1dd2";
-          changed = true;
-        }
-
-        if (item.type === "LIVE" && typeof item.isPrime === "undefined") {
-          item.isPrime = false;
-          changed = true;
-        }
-      }
-
-      const { liveStatus = {} } = await chrome.storage.local.get("liveStatus");
-
-      for (const channelId in liveStatus) {
-        if (typeof liveStatus[channelId].isPrime === "undefined") {
-          liveStatus[channelId].isPrime = false; // 기본값 false 설정
-          changed = true;
-        }
-      }
-
-      const dataToSave = { migrated_v3: true };
-      if (changed) {
-        dataToSave.notificationHistory = notificationHistory;
-        dataToSave.liveStatus = liveStatus;
-      }
-      await chrome.storage.local.set(dataToSave);
-    }
+    if (migrated_v3) await chrome.storage.local.remove("migrated_v3");
 
     const { is_banner_id_migrated } = await chrome.storage.local.get(
       "is_banner_id_migrated"
     );
-    if (!is_banner_id_migrated) {
-      let { notificationHistory = [] } = await chrome.storage.local.get(
-        "notificationHistory"
-      );
-
-      await chrome.storage.local.remove("seenBanners");
-
-      const seenBanners = [];
-      let changed = false;
-
-      const updatedHistory = notificationHistory.map((item) => {
-        const idParts = item.id.split("-");
-        if (
-          item.type === "BANNER" &&
-          idParts.length === 2 &&
-          item.scheduledDate
-        ) {
-          const newId = `banner-${item.title}-${item.imageUrl}-${item.scheduledDate}`;
-
-          if (item.id !== newId) {
-            item.id = newId;
-
-            seenBanners.push({
-              imageUrl: item.imageUrl,
-              scheduledDate: item.scheduledDate,
-              title: item.title,
-            });
-
-            changed = true;
-          }
-        }
-        return item;
-      });
-
-      notificationHistory = updatedHistory;
-
-      const dataToSave = { is_banner_id_migrated: true };
-      if (changed) {
-        dataToSave.notificationHistory = notificationHistory;
-        dataToSave.seenBanners = seenBanners;
-      }
-      await chrome.storage.local.set(dataToSave);
-    }
+    if (is_banner_id_migrated)
+      await chrome.storage.local.remove("is_banner_id_migrated");
   }
 
   // '업데이트' 시에만 실행되는 로직
@@ -589,7 +785,20 @@ async function playSoundFor(kind) {
 }
 
 // --- 브라우저가 시작될 때 초기 상태 확인 ---
-chrome.runtime.onStartup.addListener(checkInitialLoginStatus);
+chrome.runtime.onStartup.addListener(async () => {
+  // 알람이 사라졌으면 재생성(00:05로 설정)
+  const a = await chrome.alarms.get(LOGPOWER_SUMMARY_ALARM);
+  if (!a) {
+    chrome.alarms.create(LOGPOWER_SUMMARY_ALARM, {
+      when: atNextLocalTime(0, 5), // 00:05
+      periodInMinutes: 24 * 60,
+    });
+  }
+  await ensureCatchupSchedule(new Date());
+  ensureDailyOpeningAlarm();
+  cleanupOpeningSnapshots();
+  await ensureTodayOpeningSnapshotBG();
+});
 
 // --- 읽지 않은 알림 수를 계산하여 아이콘 배지에 표시하는 함수 ---
 async function updateUnreadCountBadge() {
@@ -752,9 +961,31 @@ async function refreshBookmarkLiveStatus(force = false) {
 }
 
 // --- 알람 리스너 ---
-chrome.alarms.onAlarm.addListener((alarm) => {
+chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === CHECK_ALARM_NAME) {
     checkFollowedChannels();
+  }
+  if (alarm.name === LOGPOWER_SUMMARY_ALARM) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    runLogPowerSummaries(yesterday).catch((e) =>
+      console.warn("[logpower:summary] failed:", e)
+    );
+  }
+  if (alarm.name === LOGPOWER_CATCHUP_ALARM) {
+    (async () => {
+      const missing = await missingKinds(new Date());
+      for (const { kind, anchor } of missing) {
+        // 각 기간별 "직전" 앵커로 강제 실행
+        await runLogPowerSummaries(anchor, [kind]);
+      }
+      await ensureCatchupSchedule(new Date()); // 아직 남았으면 다음 슬롯 예약
+    })().catch((e) => console.warn("[logpower:catchup] failed:", e));
+  }
+  if (alarm.name === DAILY_OPENING_ALARM) {
+    ensureTodayOpeningSnapshotBG();
+    cleanupOpeningSnapshots();
   }
   if (alarm.name === BOOKMARK_REFRESH_ALARM) {
     refreshBookmarkLiveStatus();
@@ -1033,7 +1264,9 @@ async function fetchAllPartyMembers(partyNo) {
 
 // live URL에서 channelId 추출
 function extractChannelIdFromUrl(url) {
-  const m = (url || "").match(/chzzk\.naver\.com\/live\/([a-f0-9]{32})/i);
+  const m = (url || "").match(
+    /chzzk\.naver\.com\/(?:live\/)?([a-f0-9]{32})(?:\/|$)/i
+  );
   return m ? m[1] : null;
 }
 
@@ -1085,7 +1318,6 @@ async function resolveChannelName(channelId, followingList) {
       if (hit?.channel?.channelName) return hit.channel.channelName;
     }
   } catch {}
-  // fallback: fetchLiveDetail(channelId)가 background.js에 이미 있다고 가정
   try {
     if (typeof fetchLiveDetail === "function") {
       const detail = await fetchLiveDetail(channelId);
@@ -1219,12 +1451,13 @@ async function pushLogPowerHistory({
 
 // 중복 방지: 최근 본 claimId 캐시 (채널별)
 const logPowerSeenClaims = new Map(); // channelId -> Set(claimId)
-function filterNewEligibleClaims(channelId, claims) {
+function filterNewEligibleClaims(channelId, claims, { force = false } = {}) {
   const s = logPowerSeenClaims.get(channelId) || new Set();
   const eligible = claims.filter((c) => {
     const okState = (c.state || "").toUpperCase() === "COMPLIED";
     const okSave = (c.saveType || "").toUpperCase() === "ACTIVE";
-    return okState && okSave && c.claimId && !s.has(c.claimId);
+    const unseen = !s.has(c.claimId);
+    return okState && okSave && c.claimId && (force ? true : unseen);
   });
   return { eligible, seenSet: s };
 }
@@ -1254,55 +1487,593 @@ function askContentToClaim(tabId, payload) {
   });
 }
 
-// 활성 치지직 live 탭들 스캔 → 채널별 GET
+// 공통 로직을 처리할 헬퍼 함수
+async function checkAndClaimPowerForChannel(
+  channelId,
+  tabId,
+  followingList = null,
+  { force = false } = {}
+) {
+  try {
+    // 1) GET
+    const content = await fetchLogPower(channelId);
+    const claims = Array.isArray(content?.claims) ? content.claims : [];
+    if (claims.length === 0) return;
+
+    // 2) 적격 + 중복 제외
+    const { eligible, seenSet } = filterNewEligibleClaims(channelId, claims, {
+      force,
+    });
+    if (eligible.length === 0) return;
+
+    // 3) 채널 메타 정보 조회
+    const { name: channelName, imageUrl: channelImageUrl } =
+      await getChannelMeta(channelId, followingList);
+
+    // 4) claimType → title/icon 매핑
+    const meta = await fetchClaimListMeta(channelId);
+    const enriched = eligible.map((c) => {
+      const m = meta.get(c.claimType) || {};
+      return {
+        ...c,
+        displayTitle: m.title || c.claimType,
+        displayIcon: m.iconUrl || "",
+        displayUnit: m.unit || "",
+        displayBaseAmount: m.baseAmount,
+      };
+    });
+
+    // 5) content.js에게 PUT 실행 요청
+    askContentToClaim(tabId, {
+      channelId,
+      channelName,
+      channelImageUrl,
+      claims: enriched,
+      baseTotalAmount: content?.amount ?? 0,
+      active: !!content?.active,
+    });
+  } catch (e) {
+    console.warn(
+      `[log-power] Channel(${channelId}) check failed:`,
+      e?.message || e
+    );
+  }
+}
+
 async function pollLogPowerOnActiveLiveTabs(followingList) {
-  const tabs = await chrome.tabs.query({ url: `${CHZZK_URL}/live/*` });
+  const tabs = await chrome.tabs.query({ url: `${CHZZK_URL}/*` });
   for (const t of tabs) {
     const channelId = extractChannelIdFromUrl(t.url || "");
     if (!channelId) continue;
 
-    try {
-      // 1) GET
-      const content = await fetchLogPower(channelId);
-      const claims = Array.isArray(content?.claims) ? content.claims : [];
-      if (claims.length === 0) continue;
+    // 헬퍼 함수 호출
+    await checkAndClaimPowerForChannel(channelId, t.id, followingList);
+  }
+}
 
-      // 2) 적격 + 중복 제외
-      const { eligible, seenSet } = filterNewEligibleClaims(channelId, claims);
-      if (eligible.length === 0) continue;
+// ====== Log Power Summary Aggregation ======
+// 기간 경계 계산
+function zeroOf(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function endOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+}
 
-      // 3) 채널명 매핑
-      const { name: channelNameResolved, imageUrl: channelImageUrlResolved } =
-        await getChannelMeta(channelId, followingList);
+function periodBounds(kind, now = new Date()) {
+  const today0 = zeroOf(now);
 
-      // 4) claimType → title/icon 매핑
-      const meta = await fetchClaimListMeta(channelId);
-      const enriched = eligible.map((c) => {
-        const m = meta.get(c.claimType) || {};
-        return {
-          ...c,
-          displayTitle: m.title || c.claimType,
-          displayIcon: m.iconUrl || "",
-          displayUnit: m.unit || "",
-          displayBaseAmount: m.baseAmount,
+  if (kind === "daily") {
+    const start = today0;
+    const end = endOfDay(today0);
+
+    const year = start.getFullYear();
+    const month = String(start.getMonth() + 1).padStart(2, "0"); // getMonth()는 0부터 시작하므로 +1
+    const day = String(start.getDate()).padStart(2, "0");
+    const key = `${year}-${month}-${day}`;
+
+    return { start, end, key, label: `일간(${key})` };
+  }
+
+  if (kind === "weekly") {
+    // 월요일 00:00 ~ 일요일 23:59 (일요일에 생성)
+    const dow = (today0.getDay() + 6) % 7; // Mon=0..Sun=6
+    const start = new Date(today0);
+    start.setDate(start.getDate() - dow);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    const key = `${start.getFullYear()}-${start.getMonth() + 1}-W${
+      Math.floor((start.getDate() - 1) / 7) + 1
+    }`;
+
+    // 현지 시간 기준으로 시작일과 종료일 문자열 생성
+    const startStr = `${start.getFullYear()}-${String(
+      start.getMonth() + 1
+    ).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+    const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(end.getDate()).padStart(2, "0")}`;
+
+    return {
+      start,
+      end,
+      key,
+      label: `주간(${startStr}~${endStr})`,
+    };
+  }
+
+  if (kind === "monthly") {
+    const y = now.getFullYear(),
+      m = now.getMonth();
+    const start = new Date(y, m, 1, 0, 0, 0, 0);
+    const end = new Date(y, m + 1, 0, 23, 59, 59, 999); // 말일
+    const key = `${y}-${String(m + 1).padStart(2, "0")}`;
+    return { start, end, key, label: `월간(${key})` };
+  }
+
+  if (kind === "year_end") {
+    // 당해 연말(12/31 생성)
+    const y = now.getFullYear();
+    const start = new Date(y, 0, 1, 0, 0, 0, 0);
+    const end = new Date(y, 11, 31, 23, 59, 59, 999);
+    const key = `${y}-EOY`;
+    return { start, end, key, label: `${y} 연말` };
+  }
+
+  throw new Error("unknown period kind: " + kind);
+}
+
+const LOGPOWER_CATCHUP_ALARM = "logpower:summary:catchup";
+const CATCHUP_HOURS = [9, 12, 15, 18, 21];
+
+function nextCatchupWhen(now = new Date()) {
+  const slots = CATCHUP_HOURS.map(
+    (h) =>
+      new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, 0, 0, 0)
+  );
+  const nextToday = slots.find((t) => t.getTime() > now.getTime());
+  if (nextToday) return nextToday.getTime();
+  const t = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    CATCHUP_HOURS[0],
+    0,
+    0,
+    0
+  );
+  return t.getTime();
+}
+
+// 어제/직전 주/직전 월/직전 연말의 "기대 키"를 계산
+function expectedSummaryAnchors(now = new Date()) {
+  const anchors = {};
+
+  // daily → 전일
+  const y = new Date(now);
+  y.setDate(y.getDate() - 1);
+  anchors.daily = y;
+
+  // weekly → 직전 일요일 기준
+  const w = new Date(now);
+  // "지난" 일요일(오늘이 일요일이면 7일 전)
+  const delta = w.getDay() === 0 ? 7 : w.getDay();
+  w.setDate(w.getDate() - delta);
+  anchors.weekly = w;
+
+  // monthly → 직전 달 말일
+  const m = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+  anchors.monthly = m;
+
+  // year_end → 직전 12/31
+  const yEnd = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
+  anchors.year_end = yEnd;
+
+  return anchors;
+}
+
+async function missingKinds(now = new Date()) {
+  const { logpowerSummaryLastRun = {} } = await chrome.storage.local.get(
+    "logpowerSummaryLastRun"
+  );
+  const { [LOGPOWER_CATCHUP_BASELINE_KEY]: baselineAt = 0 } =
+    await chrome.storage.local.get(LOGPOWER_CATCHUP_BASELINE_KEY);
+
+  const anchors = expectedSummaryAnchors(now);
+  const missing = [];
+
+  for (const kind of ["daily", "weekly", "monthly", "year_end"]) {
+    const b = periodBounds(kind, anchors[kind]); // {start, end, key, label}
+    // 설치(또는 기능 켜진) 이전에 끝난 기간은 catch-up 대상에서 제외
+    if (baselineAt && +b.end <= baselineAt) continue;
+
+    if (logpowerSummaryLastRun[kind] !== b.key)
+      missing.push({ kind, anchor: anchors[kind], key: b.key });
+  }
+  return missing;
+}
+
+async function ensureCatchupSchedule(now = new Date()) {
+  const missing = await missingKinds(now);
+  if (missing.length === 0) {
+    await chrome.alarms.clear(LOGPOWER_CATCHUP_ALARM);
+    return false;
+  }
+  await chrome.alarms.create(LOGPOWER_CATCHUP_ALARM, {
+    when: nextCatchupWhen(now),
+  });
+  return true;
+}
+
+// 히스토리에서 기간별 집계
+async function aggregateLogPowerBetween(start, end, aggOpts = {}) {
+  const sTs = +start,
+    eTs = +end;
+  const { notificationHistory = [] } = await chrome.storage.local.get(
+    "notificationHistory"
+  );
+
+  const WATCH_MINUTES_PER_HOUR = 12;
+  const HOUR_LABEL = normalizeClaimType("WATCH_1_HOUR");
+  const FIVE_LABEL = normalizeClaimType("WATCH_5_MINUTE");
+
+  // 채널 메타(이름/이미지) 최신값(<= end) 확보
+  const metaByCh = new Map();
+  for (const it of notificationHistory) {
+    if (it?.type !== "LOGPOWER") continue;
+    const t = +new Date(it.timestamp || 0);
+    if (Number.isNaN(t) || t > eTs) continue;
+    metaByCh.set(it.channelId, {
+      name: it.channelName || "알 수 없음",
+      imageUrl: it.channelImageUrl || "icon_128.png",
+    });
+  }
+
+  let total = 0,
+    count = 0;
+  const per = new Map();
+  const typeCountsAll = Object.create(null);
+
+  for (const it of notificationHistory) {
+    if (it?.type !== "LOGPOWER") continue;
+    const t = +new Date(it.timestamp || 0);
+    if (Number.isNaN(t) || t < sTs || t > eTs) continue;
+
+    for (const r of it.results || []) {
+      if (!r?.ok) continue;
+      const typ = normalizeClaimType(r.claimType);
+      const amt = Number(r.amount || 0);
+
+      total += amt;
+      count += 1;
+
+      const key = it.channelId || "unknown";
+      let acc = per.get(key);
+      if (!acc) {
+        acc = {
+          channelId: key,
+          channelName: it.channelName || "알 수 없음",
+          channelImageUrl: it.channelImageUrl || "../icon_128.png",
+          total: 0,
+          count: 0,
+          typeSet: new Set(),
+          typeCounts: Object.create(null),
         };
-      });
+        per.set(key, acc);
+      }
+      acc.total += amt;
+      acc.count += 1;
 
-      // 5) content에게 PUT 실행 요청
-      askContentToClaim(t.id, {
-        channelId,
-        channelName: channelNameResolved,
-        channelImageUrl: channelImageUrlResolved,
-        claims: enriched,
-        baseTotalAmount: content?.amount ?? 0,
-        active: !!content?.active,
-      });
+      if (typ) {
+        acc.typeSet.add(typ);
+        const cur = acc.typeCounts[typ] || { count: 0, total: 0 };
+        cur.count += 1;
+        cur.total += amt;
+        acc.typeCounts[typ] = cur;
 
-      // 6) 중복 방지 캐시 갱신
-      enriched.forEach((c) => seenSet.add(c.claimId));
-      logPowerSeenClaims.set(channelId, seenSet);
+        const g = typeCountsAll[typ] || { count: 0, total: 0 };
+        g.count += 1;
+        g.total += amt;
+        typeCountsAll[typ] = g;
+      }
+    }
+  }
+
+  const channels = [...per.values()].map((c) => {
+    const hour = c.typeCounts[HOUR_LABEL] || { count: 0, total: 0 };
+    const five = c.typeCounts[FIVE_LABEL] || { count: 0, total: 0 };
+
+    const derivedFiveCnt = hour.count * WATCH_MINUTES_PER_HOUR;
+    if (derivedFiveCnt > 0) {
+      five.count += derivedFiveCnt;
+      c.typeCounts[FIVE_LABEL] = five;
+
+      const g = typeCountsAll[FIVE_LABEL] || { count: 0, total: 0 };
+      g.count += derivedFiveCnt;
+      typeCountsAll[FIVE_LABEL] = g;
+    }
+
+    const hourAmt = Number(hour.total || 0);
+    const fiveAmt = Number(five.total || 0);
+
+    // "표시용 5분 금액" = 실제 5분 금액 + 1시간 금액
+    const fiveDisplayTotal = fiveAmt + hourAmt;
+    c.typeCounts[FIVE_LABEL] = {
+      ...five,
+      total: fiveDisplayTotal,
+    };
+
+    {
+      const g = typeCountsAll[FIVE_LABEL] || { count: 0, total: 0 };
+      g.total += hourAmt; // 1시간 금액을 5분 총합에 더함
+      typeCountsAll[FIVE_LABEL] = g;
+    }
+
+    const shownTotal = c.total;
+    const shownCount = c.count + derivedFiveCnt;
+
+    return {
+      channelId: c.channelId,
+      channelName: c.channelName,
+      channelImageUrl: c.channelImageUrl,
+      total: shownTotal,
+      observedTotal: shownTotal,
+      count: shownCount,
+      typeCount: Object.keys(c.typeCounts).length,
+      claimTypes: [...c.typeSet],
+      typeBreakdown: Object.entries(c.typeCounts)
+        .map(([claimType, s]) => ({
+          claimType,
+          claimTypeNorm: claimType, // 팝업 chips 호환
+          count: s.count,
+          total: s.total,
+        }))
+        .sort((a, b) => b.total - a.total),
+    };
+  });
+
+  channels.sort((a, b) => b.total - a.total);
+
+  const aggTotal = channels.reduce((s, c) => s + Number(c.total || 0), 0);
+  const aggCount = channels.reduce((s, c) => s + Number(c.count || 0), 0);
+
+  return { total: aggTotal, count: aggCount, channels, typeCountsAll };
+}
+
+// 요약 알림 생성 + 히스토리 기록
+async function notifyLogPowerSummary(kind, agg, start, end, label) {
+  const idBase = `LOGPOWER-SUM-${kind}-${Date.now()}`;
+  const title = `🪵 통나무 파워 ${label} 요약`;
+  const message = `획득 총합: ${agg.total.toLocaleString()} (횟수 ${agg.count.toLocaleString()})`;
+
+  const {
+    [SUMMARY_PAUSE_KEY]: paused = false,
+    [SUMMARY_KEEP_PAUSE_KEY]: keepPaused = false,
+  } = await chrome.storage.local.get([
+    SUMMARY_PAUSE_KEY,
+    SUMMARY_KEEP_PAUSE_KEY,
+  ]);
+
+  if (!paused) {
+    // 총괄 1건
+    chrome.notifications.create(idBase, {
+      type: "basic",
+      iconUrl: "icon_128.png",
+      title,
+      message,
+      requireInteraction: false,
+      silent: true,
+    });
+    // 효과음
+    try {
+      await playSoundFor("logpower");
+    } catch {}
+  }
+
+  if (!keepPaused) {
+    // 팝업에서 볼 수 있도록 히스토리에도 적재
+    const { notificationHistory = [] } = await chrome.storage.local.get(
+      "notificationHistory"
+    );
+    notificationHistory.unshift({
+      id: idBase,
+      type: "LOGPOWER/SUMMARY",
+      title,
+      label,
+      message,
+      timestamp: new Date().toISOString(),
+      read: false,
+      period: {
+        kind,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        label,
+      },
+      total: agg.total,
+      count: agg.count,
+      channels: agg.channels.map((c) => ({
+        channelId: c.channelId,
+        channelName: c.channelName,
+        channelImageUrl: c.channelImageUrl,
+        total: c.total,
+        count: c.count,
+        typeCount: c.typeCount,
+        claimTypes: c.claimTypes, // 전체 타입 목록
+        typeBreakdown: c.typeBreakdown, // 타입별 {claimType,count,total} 배열
+        externalGain: Number(c.externalGain || 0),
+        externalKnownAmount: Number(c.externalKnownAmount || 0),
+        externalCurrentAmount: Number(c.externalCurrentAmount || 0),
+      })),
+      typeCountsAll: agg.typeCountsAll,
+    });
+    await chrome.storage.local.set({ notificationHistory });
+  }
+}
+
+async function loadDailyOpening(start) {
+  const key = `logpower_open_${start.toISOString().slice(0, 10)}`;
+  const got = await chrome.storage.local.get(key);
+  return got[key] || null; // {ts, map, late}
+}
+
+async function fetchBalancesNow() {
+  const res = await fetch(
+    "https://api.chzzk.naver.com/service/v1/log-power/balances",
+    { credentials: "include" }
+  );
+  const json = await res.json();
+  const arr = json?.content?.data || [];
+  // 배열 그대로와, 빠른 조회용 맵 둘 다 만들기
+  const byId = new Map(arr.map((x) => [x.channelId, x]));
+  return { arr, byId };
+}
+
+async function sumClaimsFromLogs(start, end) {
+  // powerLogs에서 오늘 범위만 취합
+  const { powerLogs = [] } = await chrome.storage.local.get("powerLogs");
+  const s = +start,
+    e = +end;
+  const per = new Map(); // channelId -> claimSum
+  for (const log of powerLogs) {
+    const t = +new Date(log?.timestamp || 0);
+    if (!t || t < s || t > e) continue;
+    const ch = log.channelId;
+    const amt = Number(log.amount ?? log.testAmount ?? 0) || 0;
+    per.set(ch, (per.get(ch) || 0) + amt);
+  }
+  return per;
+}
+
+// 중복 방지: 같은 기간 키로 1일 1회만
+async function runLogPowerSummaries(
+  now = new Date(),
+  forceKinds = null,
+  opts = {}
+) {
+  const toRun = forceKinds ? [...forceKinds] : ["daily"];
+  const isSunday = now.getDay() === 0;
+  const y = now.getFullYear(),
+    m = now.getMonth(),
+    d = now.getDate();
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  const isMonthEnd = d === lastDay;
+  const isDec31 = m === 11 && d === 31;
+
+  if (!forceKinds) {
+    if (isSunday) toRun.push("weekly");
+    if (isMonthEnd) toRun.push("monthly");
+    if (isDec31) toRun.push("year_end");
+  }
+
+  const { logpowerSummaryLastRun = {} } = await chrome.storage.local.get(
+    "logpowerSummaryLastRun"
+  );
+
+  let external = []; // 기타 획득 결과를 저장할 변수
+  try {
+    const { logpowerIncludeExternal = true } = await chrome.storage.local.get(
+      "logpowerIncludeExternal"
+    );
+
+    // 실행할 요약이 있고, 기타 획득 옵션이 켜져 있을 때만 계산
+    if (logpowerIncludeExternal && toRun.length > 0) {
+      external = await computeExternalGainsForSummary({
+        onlyActiveChannels: false,
+        transient: !!opts?.transient,
+      });
+    }
+  } catch (e) {
+    console.warn(
+      "[logpower] computeExternalGainsForSummary (pre-loop) failed:",
+      e
+    );
+  }
+
+  for (const kind of toRun) {
+    const { start, end, key, label } = periodBounds(kind, now);
+    // transient 모드에서는 중복검사를 건너뜀(수동 ‘오늘’ 발행용)
+    if (!opts?.transient && logpowerSummaryLastRun[kind] === key) continue;
+
+    // 원장이 있으면 원장 기준 집계, 없으면 notificationHistory 기반
+    let agg;
+    try {
+      agg = await aggregateLogPowerBetweenFromLedger(start, end);
+      if (!agg || !Array.isArray(agg.channels)) throw new Error("ledger empty");
+    } catch {
+      agg = await aggregateLogPowerBetween(start, end);
+    }
+
+    try {
+      if (Array.isArray(external) && external.length > 0) {
+        // 맵 생성: channelId -> externalGain
+        const extMap = Object.fromEntries(
+          external.map((e) => [String(e.channelId), e])
+        );
+
+        // agg.channels 항목들에 externalGain 병합
+        let addedTotal = 0;
+        for (const ch of agg.channels) {
+          const key = String(ch.channelId);
+          const e = extMap[key];
+          if (e && Number(e.externalGain) > 0) {
+            ch.externalGain = Number(e.externalGain);
+            ch.externalKnownAmount = Number(e.knownAmount || 0);
+            ch.externalCurrentAmount = Number(e.currentAmount || 0);
+            ch.total = Number(ch.total || 0) + Number(e.externalGain);
+            addedTotal += Number(e.externalGain);
+
+            delete extMap[key];
+          } else {
+            ch.externalGain = 0;
+          }
+        }
+
+        // 기타 획득이 agg에 포함되지 않은 신규 채널(agg에 없는 경우) 처리
+        for (const [chId, e] of Object.entries(extMap)) {
+          const found = agg.channels.find(
+            (c) => String(c.channelId) === String(e.channelId)
+          );
+          if (!found) {
+            // 새 채널 항목을 추가 (팝업에 보이도록 최소 필드 채움)
+            const newCh = {
+              channelId: String(e.channelId),
+              channelName: e.channelName || "",
+              channelImageUrl: e.channelImageUrl || "",
+              total: Number(e.externalGain),
+              observedTotal: Number(e.externalGain),
+              count: 0,
+              typeCount: 0,
+              claimTypes: ["기타 획득"],
+              typeBreakdown: [],
+              externalGain: Number(e.externalGain),
+              externalKnownAmount: Number(e.knownAmount || 0),
+              externalCurrentAmount: Number(e.currentAmount || 0),
+            };
+            agg.channels.push(newCh);
+            addedTotal += Number(e.externalGain);
+          }
+        }
+
+        // agg 정렬/총합 업데이트
+        if (addedTotal > 0) {
+          agg.total = Number(agg.total || 0) + addedTotal;
+          agg.channels.sort(
+            (a, b) => Number(b.total || 0) - Number(a.total || 0)
+          );
+        }
+      }
     } catch (e) {
-      console.warn("[log-power] poll 실패:", e?.message || e);
+      console.warn("[logpower] external merge failed:", e);
+    }
+
+    await notifyLogPowerSummary(kind, agg, start, end, label);
+
+    // transient가 아닐 때에만 lastRun 갱신
+    if (!opts?.transient) {
+      logpowerSummaryLastRun[kind] = key;
+      await chrome.storage.local.set({ logpowerSummaryLastRun });
     }
   }
 }
@@ -1620,6 +2391,7 @@ async function checkFollowedChannels() {
       "dismissedNotificationIds",
       "isPaused",
       "isLivePaused",
+      "isLiveOffPaused",
       "isCategoryPaused",
       "isLiveTitlePaused",
       "isRestrictPaused",
@@ -1631,6 +2403,7 @@ async function checkFollowedChannels() {
       "isBannerPaused",
       "isPartyPaused",
       "isLiveKeepPaused",
+      "isLiveOffKeepPaused",
       "isCategoryKeepPaused",
       "isLiveTitleKeepPaused",
       "isRestrictKeepPaused",
@@ -1645,6 +2418,7 @@ async function checkFollowedChannels() {
     const isPaused = prevState.isPaused || false;
 
     const isLivePaused = prevState.isLivePaused || false;
+    const isLiveOffPaused = prevState.isLiveOffPaused || false;
     const isCategoryPaused = prevState.isCategoryPaused || false;
     const isLiveTitlePaused = prevState.isLiveTitlePaused || false;
     const isRestrictPaused = prevState.isRestrictPaused || false;
@@ -1657,6 +2431,7 @@ async function checkFollowedChannels() {
     const isPartyPaused = prevState.isPartyPaused || false;
 
     const isLiveKeepPaused = prevState.isLiveKeepPaused || false;
+    const isLiveOffKeepPaused = prevState.isLiveOffKeepPaused || false;
     const isCategoryKeepPaused = prevState.isCategoryKeepPaused || false;
     const isLiveTitleKeepPaused = prevState.isLiveTitleKeepPaused || false;
     const isRestrictKeepPaused = prevState.isRestrictKeepPaused || false;
@@ -1669,6 +2444,7 @@ async function checkFollowedChannels() {
     const isPartyKeepPaused = prevState.isPartyKeepPaused || false;
 
     const dismissedSet = new Set(prevState.dismissedNotificationIds || []);
+    for (const id of globalDismissedSet) dismissedSet.add(id);
 
     // --- 분산 스케줄 ---
     const tick = await _nextTick();
@@ -1726,12 +2502,14 @@ async function checkFollowedChannels() {
       prevState.liveStatus,
       isPaused,
       isLivePaused,
+      isLiveOffPaused,
       isCategoryPaused,
       isLiveTitlePaused,
       isRestrictPaused,
       isWatchPartyPaused,
       isDropsPaused,
       isLiveKeepPaused,
+      isLiveOffKeepPaused,
       isCategoryKeepPaused,
       isLiveTitleKeepPaused,
       isRestrictKeepPaused,
@@ -1864,6 +2642,11 @@ async function checkFollowedChannels() {
       );
     }
 
+    // 저장 직전 finalHistory 필터링 - 삭제된 알림 ID들은 제외
+    if (dismissedSet && dismissedSet.size) {
+      finalHistory = finalHistory.filter((item) => !dismissedSet.has(item.id));
+    }
+
     // 3. 모든 상태와 최종 알림 내역을 한 번에 저장
     await chrome.storage.local.set({
       liveStatus: liveResult.newStatus,
@@ -1907,12 +2690,14 @@ async function checkLiveStatus(
   prevLiveStatus = {},
   isPaused,
   isLivePaused,
+  isLiveOffPaused,
   isCategoryPaused,
   isLiveTitlePaused,
   isRestrictPaused,
   isWatchPartyPaused,
   isDropsPaused,
   isLiveKeepPaused,
+  isLiveOffKeepPaused,
   isCategoryKeepPaused,
   isLiveTitleKeepPaused,
   isRestrictKeepPaused,
@@ -1986,7 +2771,12 @@ async function checkLiveStatus(
 
       // 빠른 재시작을 감지하여 'LIVE_OFF' 알림을 추론하는 로직 추가
       // 조건: 이전에 라이브였고, openDate가 이전과 달라졌다면
-      if (isFastRestart && !isLiveKeepPaused && isNotificationEnabled) {
+      if (
+        isFastRestart &&
+        !isLiveKeepPaused &&
+        !isLiveOffKeepPaused &&
+        isNotificationEnabled
+      ) {
         const expectedNotificationId = `live-off-${channel.channelId}-${prevOpenDate}`;
         const notificationExists = notificationHistory.some(
           (n) => n.id === expectedNotificationId
@@ -2008,7 +2798,7 @@ async function checkLiveStatus(
               prevOpenDate
             )
           );
-          if (!isPaused && !isLivePaused) {
+          if (!isPaused && !isLivePaused && !isLiveOffPaused) {
             // Promise를 사용하여 '종료' 알림이 먼저 생성되도록 보장
             await new Promise((resolve) => {
               chrome.notifications.create(
@@ -2316,7 +3106,7 @@ async function checkLiveStatus(
     if (
       channelInfo &&
       channelInfo.personalData.following.notification &&
-      !isLiveKeepPaused
+      !isLiveOffKeepPaused
     ) {
       const prevOpenDate = prevLiveStatus[channelId]?.openDate;
 
@@ -2325,7 +3115,7 @@ async function checkLiveStatus(
         notifications.push(
           createLiveOffObject(channelInfo, closeDate, prevOpenDate)
         );
-        if (!isPaused && !isLivePaused) {
+        if (!isPaused && !isLiveOffPaused) {
           chrome.notifications.create(
             `live-off-${channelId}-${prevOpenDate}`,
             createLiveOffNotification(channelInfo, closeDate)
@@ -5042,6 +5832,198 @@ async function checkLive(channelId) {
   return false;
 }
 
+async function appendToLogPowerLedger(
+  channelId,
+  channelName,
+  channelImageUrl,
+  results,
+  ts
+) {
+  const { logPowerLedger = { entries: {} } } = await chrome.storage.local.get(
+    "logPowerLedger"
+  );
+  const entries = logPowerLedger.entries || {};
+
+  for (const r of results || []) {
+    if (!r || !r.ok || !r.claimId) continue;
+    if (entries[r.claimId]) continue; // claimId 기준 중복 방지
+
+    entries[r.claimId] = {
+      claimId: r.claimId,
+      claimType: String(r.claimType || "").toUpperCase(),
+      claimTypeNorm: normalizeClaimType(r.claimType),
+      amount: Number(r.amount || 0),
+      channelId,
+      channelName,
+      channelImageUrl,
+      timestamp: ts || new Date().toISOString(),
+    };
+  }
+  logPowerLedger.entries = entries;
+
+  // 용량 관리: 너무 많아지면 오래된 것 삭제/압축
+  // 50k 초과 시 오래된 순으로 정리
+  const MAX = 50000;
+  const keys = Object.keys(entries);
+  if (keys.length > MAX) {
+    const arr = keys
+      .map((k) => entries[k])
+      .sort((a, b) => +new Date(a.timestamp) - +new Date(b.timestamp));
+    const toKeep = arr.slice(-MAX);
+    const compact = Object.create(null);
+    for (const e of toKeep) compact[e.claimId] = e;
+    logPowerLedger.entries = compact;
+  }
+
+  await chrome.storage.local.set({ logPowerLedger });
+}
+
+async function aggregateLogPowerBetweenFromLedger(start, end) {
+  const { notificationHistory = [] } = await chrome.storage.local.get(
+    "notificationHistory"
+  );
+  const { logPowerLedger = { entries: {} } } = await chrome.storage.local.get(
+    "logPowerLedger"
+  );
+  const all = Object.values(logPowerLedger.entries || {});
+  const sTs = +start,
+    eTs = +end;
+
+  // 파생/라벨
+  const WATCH_MINUTES_PER_HOUR = 12;
+  const HOUR_LABEL = normalizeClaimType("WATCH_1_HOUR");
+  const FIVE_LABEL = normalizeClaimType("WATCH_5_MINUTE");
+  const FOLLOW_LABEL = normalizeClaimType("FOLLOW");
+
+  // 채널 메타(이름/이미지) 최신값(<= end) 확보
+  const metaByCh = new Map();
+  for (const it of notificationHistory) {
+    if (it?.type !== "LOGPOWER") continue;
+    const t = +new Date(it.timestamp || 0);
+    if (Number.isNaN(t) || t > eTs) continue;
+    metaByCh.set(it.channelId, {
+      name: it.channelName || "알 수 없음",
+      imageUrl: it.channelImageUrl || "../icon_128.png",
+    });
+  }
+
+  let total = 0,
+    count = 0;
+  const per = new Map(); // ch -> { channelId, ..., total, count, typeSet, typeCounts }
+  const typeCountsAll = Object.create(null); // 전체 기간 타입별 합계
+
+  // 1) 원장 스캔: 기본 집계
+  for (const e of all) {
+    const t = +new Date(e.timestamp || 0);
+    if (Number.isNaN(t) || t < sTs || t > eTs) continue;
+
+    const amt = Number(e.amount || 0);
+    total += amt;
+    count += 1;
+
+    const key = e.channelId || "unknown";
+    let acc = per.get(key);
+    if (!acc) {
+      acc = {
+        channelId: key,
+        channelName: e.channelName || "알 수 없음",
+        channelImageUrl: e.channelImageUrl || "../icon_128.png",
+        total: 0,
+        count: 0,
+        typeSet: new Set(),
+        typeCounts: Object.create(null),
+      };
+      per.set(key, acc);
+    }
+    acc.total += amt;
+    acc.count += 1;
+
+    const label = e.claimTypeNorm || normalizeClaimType(e.claimType);
+    if (label) {
+      acc.typeSet.add(label);
+      const cur = acc.typeCounts[label] || { count: 0, total: 0 };
+      cur.count += 1;
+      cur.total += amt;
+      acc.typeCounts[label] = cur;
+
+      const g = typeCountsAll[label] || { count: 0, total: 0 };
+      g.count += 1;
+      g.total += amt;
+      typeCountsAll[label] = g;
+    }
+  }
+
+  // 2) 채널별 파생/보정
+  const channels = [...per.values()].map((c) => {
+    const hour = c.typeCounts[HOUR_LABEL] || { count: 0, total: 0 };
+    const five = c.typeCounts[FIVE_LABEL] || { count: 0, total: 0 };
+    const follow = c.typeCounts[FOLLOW_LABEL] || { count: 0, total: 0 };
+
+    // 2-1) 1시간 → 5분 12회 파생 "횟수" 추가
+    const derivedFiveCnt = (hour.count || 0) * WATCH_MINUTES_PER_HOUR;
+    if (derivedFiveCnt > 0) {
+      five.count += derivedFiveCnt;
+      c.typeCounts[FIVE_LABEL] = five;
+      c.typeSet.add(FIVE_LABEL); // chips에 노출되도록 세트에도 포함
+
+      const g = typeCountsAll[FIVE_LABEL] || { count: 0, total: 0 };
+      g.count += derivedFiveCnt;
+      typeCountsAll[FIVE_LABEL] = g;
+    }
+
+    // 2-2) 관측증가 − 시청/팔로우
+    const hourAmt = Number(hour.total || 0);
+    const fiveAmt = Number(five.total || 0);
+    const followAmt = Number(follow.total || 0);
+
+    const inferredFiveAmt = hourAmt * 1.2;
+
+    // 2-3) "표시용 5분 금액" = 원장 5분 + 추론 5분
+    const fiveDisplayTotal = fiveAmt + inferredFiveAmt;
+    c.typeCounts[FIVE_LABEL] = {
+      ...five,
+      total: fiveDisplayTotal,
+    };
+    // 집계 전체에도 5분 표시금액의 '증분'을 더해 합계 일관성 유지
+    {
+      const g = typeCountsAll[FIVE_LABEL] || { count: 0, total: 0 };
+      g.total += inferredFiveAmt;
+      typeCountsAll[FIVE_LABEL] = g;
+    }
+
+    // 2-4) 채널 "표시용 합계" = 1시간 + 원장 5분 + 추론 5분 + 팔로우
+    const displayTotal = hourAmt + fiveAmt + inferredFiveAmt + followAmt;
+    const shownCount = c.count + derivedFiveCnt;
+
+    return {
+      channelId: c.channelId,
+      channelName: c.channelName,
+      channelImageUrl: c.channelImageUrl,
+      total: displayTotal, // 팝업 .stat-total 에 쓰이는 표시 기준 합계
+      observedTotal: displayTotal, // (디버깅/검증용) 실제 관측 증가
+      count: shownCount,
+      typeCount: Object.keys(c.typeCounts).length,
+      claimTypes: [...c.typeSet],
+      typeBreakdown: Object.entries(c.typeCounts)
+        .map(([claimType, s]) => ({
+          claimType, // 한국어 라벨(정규화)
+          claimTypeNorm: claimType, // 팝업 chips 호환
+          count: s.count,
+          total: s.total,
+        }))
+        .sort((a, b) => b.total - a.total),
+    };
+  });
+
+  channels.sort((a, b) => b.total - a.total);
+
+  // 4) 전체 합계/횟수(표시 기준)
+  const aggTotal = channels.reduce((s, ch) => s + Number(ch.total || 0), 0);
+  const aggCount = channels.reduce((s, ch) => s + Number(ch.count || 0), 0);
+
+  return { total: aggTotal, count: aggCount, channels, typeCountsAll };
+}
+
 // --- 알림 클릭 이벤트 핸들러 ---
 chrome.notifications.onClicked.addListener((notificationId) => {
   handleNotificationClick(notificationId);
@@ -5103,6 +6085,108 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // async 응답
   }
 
+  if (request.type === "GET_CHANNEL_LOG_POWER") {
+    (async () => {
+      try {
+        const { channelId } = request;
+        if (!channelId) throw new Error("channelId missing");
+        const content = await fetchLogPower(channelId);
+        sendResponse({ success: true, content });
+      } catch (e) {
+        sendResponse({ success: false, error: String(e) });
+      }
+    })();
+    return true; // async 응답
+  }
+
+  if (request?.type === "LOG_POWER_CHECK_NOW") {
+    (async () => {
+      try {
+        const tabId = sender?.tab?.id;
+        const channelId = request.channelId;
+        if (!tabId || !channelId) {
+          sendResponse({ ok: false, error: "INVALID_ARGS" });
+          return;
+        }
+
+        await checkAndClaimPowerForChannel(channelId, tabId, null, {
+          force: true,
+        });
+
+        // 이 메시지의 응답은 content.js가 굳이 기다리지 않으므로 간단히 응답
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e?.message || e) });
+      }
+    })();
+    return true;
+  }
+
+  if (request.type === "RUN_LOGPOWER_SUMMARY_MANUAL") {
+    (async () => {
+      try {
+        const kinds =
+          Array.isArray(request.kinds) && request.kinds.length
+            ? request.kinds
+            : ["daily"];
+        const force = !!request.force;
+        const reqAnchor = request.anchor === "current" ? "current" : "previous";
+
+        // “직전” 기준 앵커들 (어제/지난주/지난달/작년 12/31)
+        const anchors = expectedSummaryAnchors(new Date()); // daily/weekly/monthly/year_end
+        const { logpowerSummaryLastRun = {} } = await chrome.storage.local.get(
+          "logpowerSummaryLastRun"
+        );
+
+        const results = [];
+        for (const k of kinds) {
+          // daily + current인 경우에만 오늘로 override
+          const anchorDate =
+            reqAnchor === "current" && k === "daily"
+              ? new Date()
+              : anchors[k] || new Date();
+
+          const { key } = periodBounds(k, anchorDate);
+
+          const isTransient = reqAnchor === "current" && k === "daily";
+
+          if (!isTransient) {
+            if (!force && logpowerSummaryLastRun[k] === key) {
+              results.push({
+                kind: k,
+                key,
+                executed: false,
+                reason: "already",
+              });
+              continue;
+            }
+            // force면 중복키라도 재발행되게 lastRun을 비워줌
+            if (force && logpowerSummaryLastRun[k] === key) {
+              const next = { ...logpowerSummaryLastRun };
+              delete next[k];
+              await chrome.storage.local.set({ logpowerSummaryLastRun: next });
+            }
+          }
+
+          await runLogPowerSummaries(anchorDate, [k], {
+            transient: isTransient,
+          });
+          results.push({
+            kind: k,
+            key,
+            executed: true,
+            transient: isTransient,
+          });
+        }
+
+        sendResponse({ ok: true, results });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true; // async 응답
+  }
+
   if (request.type === "GET_LOG_POWER_BALANCES") {
     (async () => {
       try {
@@ -5136,6 +6220,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         (acc, r) => acc + (r.amount || 0),
         0
       );
+      // 성공한 것만 seen 처리
+      {
+        const s = logPowerSeenClaims.get(channelId) || new Set();
+        succeeded.forEach((r) => r?.claimId && s.add(r.claimId));
+        logPowerSeenClaims.set(channelId, s);
+      }
 
       const claimById = new Map(claims.map((c) => [c.claimId, c]));
       const claimedList = succeeded.map((r) => {
@@ -5151,6 +6241,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         };
       });
 
+      await appendToLogPowerLedger(
+        channelId,
+        channelName,
+        channelImageUrl,
+        succeeded,
+        new Date().toISOString()
+      );
+
       const { isPaused = false, isLogPowerPaused = false } =
         await chrome.storage.local.get(["isPaused", "isLogPowerPaused"]);
 
@@ -5165,6 +6263,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         claimedList,
         baseTotalAmount,
       });
+
+      try {
+        const nowTs = Date.now();
+        // succeeded (ok인 결과 배열) 를 넘겨서 clientClaims에 저장
+        await _recordClientClaims(channelId, succeeded, nowTs);
+      } catch (e) {
+        console.warn("failed to record client claims:", e);
+      }
+
+      const newAmount = (baseTotalAmount || 0) + (totalClaimed || 0);
+
+      // 같은 탭의 content.js에게 "뱃지 갱신" 알림
+      try {
+        const targetTabId = sender?.tab?.id;
+        if (targetTabId) {
+          chrome.tabs.sendMessage(
+            targetTabId,
+            {
+              type: "CHANNEL_LOG_POWER_UPDATED",
+              channelId,
+              newAmount, // 즉시 표시할 새 합계
+              delta: totalClaimed, // 이번에 증가한 양
+            },
+            () => void chrome.runtime.lastError
+          );
+        }
+      } catch (_) {}
+
       if (!isPaused && !isLogPowerPaused) {
         createLogPowerNotification(entry);
         playSoundFor("logpower");

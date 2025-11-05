@@ -31,7 +31,7 @@
     {
       "matches": ["https://chzzk.naver.com/*"],
       "js": ["content.js"],
-      "all_frames": true
+      "css": ["logpower-popup.css"]
     },
     {
       "matches": ["https://game.naver.com/profile*"],
@@ -44,7 +44,8 @@
         "sounds/*.wav",
         "sounds/*.mp3",
         "sounds/*.ogg",
-        "sounds/*.flac"
+        "sounds/*.flac",
+        "logpower-popup.css"
       ],
       "matches": ["<all_urls>"]
     }

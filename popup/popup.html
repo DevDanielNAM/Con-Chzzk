@@ -104,15 +104,30 @@
       <h1>알림 설정</h1>
       <div id="controls-wrapper">
         <div id="live-control-wrapper">
-          <span class="live-control-label">라이브 알림 받기</span>
+          <span class="live-control-label">라이브 시작 알림 받기</span>
           <div class="toggle-wrapper">
-            <label class="switch" title="라이브 알림 모두 ON/OFF">
+            <label class="switch" title="라이브 시작 알림 모두 ON/OFF">
               <input type="checkbox" id="live-keep-pause-toggle" />
               <span class="slider"></span>
             </label>
 
-            <label class="switch" title="라이브 알림 ON/OFF">
+            <label class="switch" title="라이브 시작 알림 ON/OFF">
               <input type="checkbox" id="live-pause-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="live-off-control-wrapper">
+          <span class="live-off-control-label">라이브 종료 알림 받기</span>
+          <div class="toggle-wrapper">
+            <label class="switch" title="라이브 종료 알림 모두 ON/OFF">
+              <input type="checkbox" id="live-off-keep-pause-toggle" />
+              <span class="slider"></span>
+            </label>
+
+            <label class="switch" title="라이브 종료 알림 ON/OFF">
+              <input type="checkbox" id="live-off-pause-toggle" />
               <span class="slider"></span>
             </label>
           </div>
@@ -175,16 +190,6 @@
 
             <label class="switch" title="드롭스 설정 알림 ON/OFF">
               <input type="checkbox" id="drops-pause-toggle" />
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div id="logpower-control-wrapper">
-          <span class="logpower-control-label">통나무 파워 알림 받기</span>
-          <div class="toggle-wrapper">
-            <label class="switch" title="알림 ON/OFF">
-              <input type="checkbox" id="logpower-pause-toggle" />
               <span class="slider"></span>
             </label>
           </div>
@@ -377,6 +382,220 @@
             모든 치지직 팔로우 스트리머의<br />알림을 끄시겠습니까?
           </p>
           <button id="off-all-notification-confrim-btn">모든 알림 끄기</button>
+        </div>
+      </div>
+
+      <div id="logpower-settings-btn" class="settings-opener">
+        <svg
+          width="25"
+          height="25"
+          viewBox="0 0 72 72"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
+        >
+          <rect width="72" height="72" fill="url(#pattern0_43_657)"></rect>
+          <defs>
+            <pattern
+              id="pattern0_43_657"
+              patternContentUnits="objectBoundingBox"
+              width="1"
+              height="1"
+            >
+              <use
+                xlink:href="#image0_43_657"
+                transform="scale(0.0138889)"
+              ></use>
+            </pattern>
+            <image
+              id="image0_43_657"
+              width="72"
+              height="72"
+              preserveAspectRatio="none"
+              xlink:href="../svg_texture/log_power_texture.png"
+            ></image>
+          </defs>
+        </svg>
+      </div>
+      <div id="logpower-settings-wrapper">
+        <div class="close-btn-wrapper">
+          <span class="close-logpower-settings-btn"
+            ><svg
+              width="8"
+              height="8"
+              viewBox="0 0 10 10"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M1 1L9 9M9 1L1 9"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              ></path></svg
+          ></span>
+        </div>
+        <h1>통나무 파워 설정</h1>
+
+        <div id="logpower-controls-wrapper">
+          <div id="logpower-control-wrapper">
+            <span class="logpower-control-label">통나무 파워 알림 받기</span>
+            <div class="toggle-wrapper">
+              <label class="switch" title="알림 ON/OFF">
+                <input type="checkbox" id="logpower-pause-toggle" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div id="logpower-summary-control-wrapper">
+            <span class="logpower-summary-control-label"
+              >통나무 파워 요약 알림 받기</span
+            >
+            <div class="toggle-wrapper">
+              <label class="switch" title="요약 알림 모두 ON/OFF">
+                <input
+                  type="checkbox"
+                  id="logpower-summary-keep-pause-toggle"
+                />
+                <span class="slider"></span>
+              </label>
+              <label class="switch" title="요약 알림 ON/OFF">
+                <input type="checkbox" id="logpower-summary-pause-toggle" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div id="logpower-external-control-wrapper">
+            <span class="logpower-external-control-label"
+              >요약에 '기타 획득' 포함 <br />(모바일, 다른 PC 또는 누락된
+              획득량)</span
+            >
+            <div class="toggle-wrapper">
+              <label
+                class="switch"
+                title="요약 알림에 외부 획득량 계산 포함 ON/OFF"
+              >
+                <input type="checkbox" id="logpower-external-toggle" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div id="logpower-display-control-wrapper">
+            <span class="logpower-display-control-label"
+              >통나무 파워 채팅창 표시</span
+            >
+            <div class="toggle-wrapper">
+              <label class="switch" title="통나무 파워 채팅창 표시 ON/OFF">
+                <input type="checkbox" id="logpower-display-pause-toggle" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div id="logpower-badge-control-wrapper">
+            <span
+              class="logpower-badge-control-label"
+              style="width: fit-content"
+              >채팅창 통나무 파워 클릭 시 동작 설정</span
+            >
+            <div class="radio-wrapper">
+              <label>
+                <input
+                  type="radio"
+                  name="logpowerBadgeAction"
+                  value="popup"
+                  checked
+                />
+                상위 5개 보유량 팝업 표시
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="logpowerBadgeAction"
+                  value="navigate"
+                />
+                통나무 파워 페이지로 이동
+              </label>
+              <label>
+                <input type="radio" name="logpowerBadgeAction" value="none" />
+                아무 동작 안 함
+              </label>
+            </div>
+          </div>
+
+          <div id="logpower-summary-manual-wrapper">
+            <span class="logpower-summary-manual-label"
+              >요약 알림 수동 발행</span
+            >
+            <div class="logpower-summary-btns">
+              <button
+                class="summary-run"
+                data-kind="daily"
+                data-anchor="current"
+                title="오늘(지금까지) 분 발행"
+              >
+                일간(오늘)
+              </button>
+              <button
+                class="summary-run"
+                data-kind="daily"
+                title="어제 분 발행"
+              >
+                일간(어제)
+              </button>
+              <button
+                class="summary-run"
+                data-kind="weekly"
+                title="지난주 분 발행"
+              >
+                주간(지난주)
+              </button>
+              <button
+                class="summary-run"
+                data-kind="monthly"
+                title="지난달 분 발행"
+              >
+                월간(지난달)
+              </button>
+              <button
+                class="summary-run"
+                data-kind="year_end"
+                title="작년 연말 분 발행"
+              >
+                연말(작년)
+              </button>
+            </div>
+
+            <label class="summary-force"
+              ><input type="checkbox" id="summary-force-checkbox" /> 재발행(중복
+              무시)</label
+            >
+            <div class="help-text" id="summary-force-help">
+              <b>체크 해제 (기본):</b> 자동 발행을 놓친 요약을 발행합니다<br />
+              <b>체크 (재발행):</b> 이미 발행된 요약을 강제로 다시 발행합니다
+            </div>
+
+            <div
+              id="summary-run-result"
+              class="help-text"
+              aria-live="polite"
+            ></div>
+          </div>
+
+          <div id="logpower-settings-info">
+            <div style="width: 100%">
+              통나무 파워 요약 알림 메시지는
+              <br />
+              [매일 / 매주 월요일 / 매달 1일 / 1월 1일] 00:05에 자동 발행됩니다.
+              <br />
+              00:05에 브라우저 접속 중이 아니라서 요약 알림을 받지 못했더라도
+              <br />
+              9, 12, 15, 18, 21시에 주기적으로 추가 발행을 시도합니다.
+            </div>
+          </div>
         </div>
       </div>
 
