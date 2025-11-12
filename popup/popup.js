@@ -1431,6 +1431,22 @@ function parseTimestampFormat(timestamp) {
   }
 }
 
+/**
+ * @param {string | number} timestamp - ISO string or number timestamp
+ * @returns {string} - "YYYY-MM-DD HH:MM:SS"
+ */
+function formatFullTimestamp(timestamp) {
+  const date = parseTimestampFormat(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 // --- 상대 시간을 계산하는 헬퍼 함수 ---
 function formatTimeAgo(timestamp) {
   const checkedDate = parseTimestampFormat(timestamp);
@@ -3716,6 +3732,7 @@ function createNotificationNode(
   const timeDiv = document.createElement("div");
   timeDiv.className = "time-ago";
   timeDiv.dataset.timestamp = item.timestamp;
+  timeDiv.title = formatFullTimestamp(item.timestamp);
 
   const messageDiv = document.createElement("div");
   messageDiv.className = "notification-message";
