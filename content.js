@@ -1076,6 +1076,9 @@ function showLogPowerBalancesPopup(limit = Infinity) {
                                     ? "var(--Content-Brand-Strong)"
                                     : "#666"
                                 }">${i + 1}</span>
+                                <a href="https://chzzk.naver.com/${
+                                  x.channelId
+                                }" target="_blank" class="logpower-channel-link">
                                 <img src="${
                                   x.channelImageUrl || defaultImg
                                 }" alt="${
@@ -1091,6 +1094,7 @@ function showLogPowerBalancesPopup(limit = Infinity) {
                                         : ""
                                     }
                                 </span>
+                                </a>
                             </div>
                             <span style="color:${
                               x.active ? "inherit" : "#666"
@@ -1448,8 +1452,16 @@ function showLogPowerBalancesPopup(limit = Infinity) {
   }
 
   let powerMo = null;
+  let powerPollInterval = null;
+
   function startPowerObserver() {
     if (powerMo || document.hidden) return;
+
+    // 1. 기존 인터벌이 있다면 정리
+    if (powerPollInterval) clearInterval(powerPollInterval);
+    // 2. 5초마다 clickPowerButtonIfExists 함수를 강제로 호출
+    powerPollInterval = setInterval(clickPowerButtonIfExists, 5000);
+
     const root =
       document.querySelector("#aside-chatting") ||
       document.querySelector("[class*=live_chatting_input_area__]") ||
@@ -1465,6 +1477,13 @@ function showLogPowerBalancesPopup(limit = Infinity) {
     powerMo.observe(root, { childList: true, subtree: true });
   }
   function stopPowerObserver() {
+    // 1. 인터벌 타이머 정리
+    if (powerPollInterval) {
+      clearInterval(powerPollInterval);
+      powerPollInterval = null;
+    }
+
+    // 2. 기존 옵저버 정리
     if (powerMo) {
       powerMo.disconnect();
       powerMo = null;

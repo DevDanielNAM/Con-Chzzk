@@ -215,6 +215,11 @@
   letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
 }
+.logpower-channel-link {
+  display: flex;
+  gap: 10px;
+  text-decoration: none;
+}
 .logpower-error {
   color: #f66;
   font-size: 16px;

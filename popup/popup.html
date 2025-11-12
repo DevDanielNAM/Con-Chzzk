@@ -448,6 +448,22 @@
             </div>
           </div>
 
+          <div id="logpower-prediction-control-wrapper">
+            <span class="logpower-prediction-control-label"
+              >통나무 파워 승부예측 알림 받기</span
+            >
+            <div class="toggle-wrapper">
+              <label class="switch" title="승부예측 알림 모두 ON/OFF">
+                <input type="checkbox" id="prediction-keep-pause-toggle" />
+                <span class="slider"></span>
+              </label>
+              <label class="switch" title="승부예측 알림 ON/OFF">
+                <input type="checkbox" id="prediction-pause-toggle" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
           <div id="logpower-summary-control-wrapper">
             <span class="logpower-summary-control-label"
               >통나무 파워 요약 알림 받기</span
@@ -483,18 +499,6 @@
             </div>
           </div>
 
-          <div id="logpower-display-control-wrapper">
-            <span class="logpower-display-control-label"
-              >통나무 파워 채팅창 표시</span
-            >
-            <div class="toggle-wrapper">
-              <label class="switch" title="통나무 파워 채팅창 표시 ON/OFF">
-                <input type="checkbox" id="logpower-display-pause-toggle" />
-                <span class="slider"></span>
-              </label>
-            </div>
-          </div>
-
           <div id="logpower-badge-control-wrapper">
             <span
               class="logpower-badge-control-label"
@@ -523,6 +527,18 @@
                 <input type="radio" name="logpowerBadgeAction" value="none" />
                 아무 동작 안 함
               </label>
+            </div>
+
+            <div id="logpower-display-control-wrapper">
+              <span class="logpower-display-control-label"
+                >통나무 파워 채팅창 표시</span
+              >
+              <div class="toggle-wrapper">
+                <label class="switch" title="통나무 파워 채팅창 표시 ON/OFF">
+                  <input type="checkbox" id="logpower-display-pause-toggle" />
+                  <span class="slider"></span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -1295,6 +1311,70 @@
                   preserveAspectRatio="none"
                   xlink:href="../svg_texture/log_power_texture.png"
                 ></image>
+              </defs>
+            </svg>
+          </button>
+
+          <button id="mark-logpower-prediction-btn">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 256 256"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="256" height="256" fill="url(#pattern0_63_101)" />
+              <defs>
+                <pattern
+                  id="pattern0_63_101"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_63_101"
+                    transform="scale(0.00390625)"
+                  />
+                </pattern>
+                <image
+                  id="image0_63_101"
+                  width="256"
+                  height="256"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/log_power_prediction_start_texture.png"
+                />
+              </defs>
+            </svg>
+            /
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 256 256"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="256" height="256" fill="url(#pattern0_63_98)" />
+              <defs>
+                <pattern
+                  id="pattern0_63_98"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_63_98"
+                    transform="scale(0.00390625)"
+                  />
+                </pattern>
+                <image
+                  id="image0_63_98"
+                  width="256"
+                  height="256"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/log_power_prediction_end_texture.png"
+                />
               </defs>
             </svg>
           </button>

@@ -276,6 +276,75 @@ const logPowerTitleSVG = `<svg
                 ></image>
               </defs>
             </svg>`;
+const logPowerPredictionStartSVG = `
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 256 256"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="256" height="256" fill="url(#pattern0_63_101)" />
+              <defs>
+                <pattern
+                  id="pattern0_63_101"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_63_101"
+                    transform="scale(0.00390625)"
+                  />
+                </pattern>
+                <image
+                  id="image0_63_101"
+                  width="256"
+                  height="256"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/log_power_prediction_start_texture.png"
+                />
+              </defs>
+            </svg>
+            `;
+const logPowerPredictionEndSVG = `
+<svg
+              width="20"
+              height="20"
+              viewBox="0 0 256 256"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <rect width="256" height="256" fill="url(#pattern0_63_98)" />
+              <defs>
+                <pattern
+                  id="pattern0_63_98"
+                  patternContentUnits="objectBoundingBox"
+                  width="1"
+                  height="1"
+                >
+                  <use
+                    xlink:href="#image0_63_98"
+                    transform="scale(0.00390625)"
+                  />
+                </pattern>
+                <image
+                  id="image0_63_98"
+                  width="256"
+                  height="256"
+                  preserveAspectRatio="none"
+                  xlink:href="../svg_texture/log_power_prediction_end_texture.png"
+                />
+              </defs>
+            </svg>
+`;
+const logPowerPredictionVersusSVG = `
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 17" fill="none" class="live_chatting_prediction_message_icon_vs__brb1n" style="
+    color: #168f5c;
+"><path fill="currentColor" d="M10.674 5.65c.936 0 1.673.198 2.21.593.54.396.856.935.946 1.617l-1.882.116a.974.974 0 0 0-.208-.434 1.102 1.102 0 0 0-.42-.314 1.426 1.426 0 0 0-.613-.121c-.318 0-.587.068-.806.203-.218.132-.328.309-.328.53 0 .177.07.327.212.45.142.122.385.22.729.294l1.342.27c.72.148 1.258.386 1.612.714.354.329.53.76.53 1.294 0 .486-.142.912-.429 1.279-.283.366-.672.653-1.168.859-.492.203-1.06.304-1.703.304-.982 0-1.764-.205-2.346-.613a2.506 2.506 0 0 1-.593-.585l.217-.62.181-.518 1.199-.063c.06.3.209.528.444.686.235.154.535.231.902.231.36 0 .65-.07.87-.207.221-.142.334-.324.337-.546a.568.568 0 0 0-.237-.458c-.154-.123-.392-.216-.714-.28l-1.284-.256a3.965 3.965 0 0 1-1.077-.364l1.407-4.024c.212-.025.435-.037.67-.037ZM9.498 3.7l-2.591 7.412H4.59L2 3.7H4.17l1.54 5.304h.077L7.322 3.7h2.176Z"></path></svg>
+`;
 const addBookmarkSVG = `<svg class="chzzk-bookmark-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M16.8203 2H7.18031C5.05031 2 3.32031 3.74 3.32031 5.86V19.95C3.32031 21.75 4.61031 22.51 6.19031 21.64L11.0703 18.93C11.5903 18.64 12.4303 18.64 12.9403 18.93L17.8203 21.64C19.4003 22.52 20.6903 21.76 20.6903 19.95V5.86C20.6803 3.74 18.9503 2 16.8203 2ZM14.5003 11.4H12.7503V13.21C12.7503 13.62 12.4103 13.96 12.0003 13.96C11.5903 13.96 11.2503 13.62 11.2503 13.21V11.4H9.50031C9.09031 11.4 8.75031 11.06 8.75031 10.65C8.75031 10.24 9.09031 9.9 9.50031 9.9H11.2503V8.21C11.2503 7.8 11.5903 7.46 12.0003 7.46C12.4103 7.46 12.7503 7.8 12.7503 8.21V9.9H14.5003C14.9103 9.9 15.2503 10.24 15.2503 10.65C15.2503 11.06 14.9103 11.4 14.5003 11.4Z" fill="#292D32"></path>
 </svg>`;
@@ -301,8 +370,38 @@ function makeLogPowerSVG() {
   return `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="live_chatting_popup_my_profile_icon_power__laD+4"><mask id="mask0_4502_4387" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16" style="mask-type: alpha;"><path d="M6.79453 2.43359C7.09254 2.43374 7.36838 2.58075 7.53476 2.82161L7.59921 2.93099L8.91692 5.56641H5.98333L5.82643 5.25326L5.06796 3.73568C4.76891 3.13737 5.20381 2.43379 5.87265 2.43359H6.79453Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M12.1484 4.43359C13.0053 4.43359 13.6561 5.0624 14.0599 5.80273C14.4754 6.5645 14.7148 7.57802 14.7148 8.66667C14.7148 9.75531 14.4754 10.7688 14.0599 11.5306C13.6561 12.2709 13.0053 12.8997 12.1484 12.8997H4C3.14314 12.8997 2.49236 12.2709 2.08854 11.5306C1.67304 10.7688 1.43359 9.75531 1.43359 8.66667C1.43359 7.57802 1.67304 6.5645 2.08854 5.80273C2.49236 5.0624 3.14314 4.43359 4 4.43359H12.1484ZM4 5.56641C3.75232 5.56641 3.40334 5.75848 3.08333 6.34505C2.77498 6.91036 2.56641 7.73027 2.56641 8.66667C2.56641 9.60306 2.77498 10.423 3.08333 10.9883C3.40334 11.5749 3.75232 11.7669 4 11.7669C4.24767 11.7669 4.59666 11.5749 4.91667 10.9883C5.22502 10.423 5.43359 9.60306 5.43359 8.66667C5.43359 7.73027 5.22502 6.91036 4.91667 6.34505C4.59666 5.75848 4.24767 5.56641 4 5.56641ZM6.52604 9.43359C6.48364 9.83162 6.40829 10.2124 6.30404 10.5664H11.6667L11.7246 10.5638C12.0104 10.5348 12.2331 10.2934 12.2331 10C12.2331 9.7066 12.0104 9.46522 11.7246 9.4362L11.6667 9.43359H6.52604ZM6.28385 6.70052C6.39253 7.05354 6.47186 7.43444 6.51823 7.83333H7.33333L7.39128 7.83073C7.67694 7.80172 7.89962 7.56022 7.89974 7.26693C7.89974 6.97353 7.67701 6.73215 7.39128 6.70312L7.33333 6.70052H6.28385ZM9.60026 6.70052C9.2873 6.70052 9.0332 6.95397 9.0332 7.26693C9.03333 7.57978 9.28738 7.83333 9.60026 7.83333H13.5228C13.4637 7.41061 13.3619 7.02765 13.2298 6.70052H9.60026Z" fill="currentColor"></path><path d="M5.43359 8.66667C5.43359 7.73027 5.22502 6.91036 4.91667 6.34505C4.59666 5.75848 4.24767 5.56641 4 5.56641C3.75232 5.56641 3.40334 5.75848 3.08333 6.34505C2.77498 6.91036 2.56641 7.73027 2.56641 8.66667C2.56641 9.60306 2.77498 10.423 3.08333 10.9883C3.40334 11.5749 3.75232 11.7669 4 11.7669C4.24767 11.7669 4.59666 11.5749 4.91667 10.9883C5.22502 10.423 5.43359 9.60306 5.43359 8.66667ZM6.56641 8.66667C6.56641 9.75531 6.32696 10.7688 5.91146 11.5306C5.50764 12.2709 4.85686 12.8997 4 12.8997C3.14314 12.8997 2.49236 12.2709 2.08854 11.5306C1.67304 10.7688 1.43359 9.75531 1.43359 8.66667C1.43359 7.57802 1.67304 6.5645 2.08854 5.80273C2.49236 5.0624 3.14314 4.43359 4 4.43359C4.85686 4.43359 5.50764 5.0624 5.91146 5.80273C6.32696 6.5645 6.56641 7.57802 6.56641 8.66667Z" fill="currentColor"></path><path d="M4.66667 8.66667C4.66667 9.40305 4.36819 10 4 10C3.63181 10 3.33333 9.40305 3.33333 8.66667C3.33333 7.93029 3.63181 7.33333 4 7.33333C4.36819 7.33333 4.66667 7.93029 4.66667 8.66667Z" fill="currentColor"></path></mask><g mask="url(#mask0_4502_4387)"><rect width="15.9998" height="16" fill="currentColor"></rect></g></svg>`;
 }
 
+/**
+ * 숫자를 '억', '만', '천' 단위의 한글 문자열로 변환하는 함수
+ * @param {number} num - 변환할 숫자
+ * @returns {string} - 포맷팅된 문자열
+ */
+function formatKoreanNumber(num) {
+  if (typeof num !== "number" || isNaN(num) || num === 0) {
+    return "0";
+  }
+
+  // 1억 (100,000,000) 이상
+  if (num >= 100000000) {
+    const value = Math.floor(num / 100000000);
+    return `${value.toLocaleString()}억`;
+  }
+  // 1만 (10,000) 이상
+  if (num >= 10000) {
+    const value = Math.floor(num / 10000);
+    return `${value.toLocaleString()}만`;
+  }
+  // 1천 (1,000) 이상
+  if (num >= 1000) {
+    const value = Math.floor(num / 1000);
+    return `${value.toLocaleString()}천`;
+  }
+  // 1천 미만
+  return num.toLocaleString();
+}
+
 let currentFilter = "ALL";
 let timeUpdaterInterval = null; // 인터벌 ID를 저장할 변수
+let predictionUpdaterInterval = null;
 
 let suppressNextStorageRerender = false;
 // === Virtual list config ===
@@ -315,6 +414,7 @@ let virtualState = {
   liveStatusMap: {},
   partyDonationStatusMap: {},
   partyStatusMap: {},
+  predictionStatusMap: {},
   loading: false,
   observer: null,
   filteredCount: 0,
@@ -333,7 +433,10 @@ const scheduleIdle = (cb) => {
 chrome.storage.onChanged.addListener((changes, namespace) => {
   // 변경된 데이터 중에 'notificationHistory'가 있는지,
   // 그리고 'local' 스토리지에서 발생한 변경인지 확인
-  if (namespace === "local" && changes.notificationHistory) {
+  if (
+    namespace === "local" &&
+    (changes.notificationHistory || changes.predictionStatus)
+  ) {
     if (suppressNextStorageRerender) {
       // 개별 삭제에 따른 1회성 변경은 UI에서 이미 처리했으니 스킵
       suppressNextStorageRerender = false;
@@ -588,6 +691,51 @@ async function initializeFoldToggle() {
   });
 }
 
+// *** 승부예측 남은 시간 텍스트를 업데이트하는 함수 ***
+function updatePredictionTimers() {
+  const timerElements = document.querySelectorAll(
+    ".prediction-timer[data-start-time][data-duration]"
+  );
+  if (timerElements.length === 0) return;
+
+  const now = Date.now();
+
+  timerElements.forEach((element) => {
+    const startTime = parseInt(element.dataset.startTime, 10);
+    const duration = parseInt(element.dataset.duration, 10);
+
+    if (isNaN(startTime) || isNaN(duration)) {
+      element.textContent = "시간 정보 없음";
+      return;
+    }
+
+    // API 1 (요약)의 remainingDuration은 투표 시작 시점의 남은 시간.
+    // (알림 생성 시각 - (전체 시간 - 남은 시간)) = 실제 시작 시각
+    // 하지만 API 2 (상세)의 remainingDuration은 '현재' 남은 시간.
+    // 알림 객체 생성 시각(timestamp)을 기준으로 삼고, API 2의 remainingDuration을 더해 종료 시각을 추정.
+    // background.js가 1분마다 갱신해주므로, data-duration을 갱신된 remainingDuration으로 사용.
+    const expireAt = parseInt(element.dataset.expireAt || "0", 10);
+    const renderTime = parseInt(element.dataset.renderTime, 10) || startTime;
+
+    // expireAt이 있으면 그것을 우선 사용, 없으면 기존 방식(fallback)
+    const endTime = expireAt > 0 ? expireAt : renderTime + duration;
+
+    // 클라이언트의 현재 시각(now)과 비교
+    const remaining = Math.max(0, endTime - now);
+
+    if (remaining === 0) {
+      element.textContent = "참여 마감";
+      element.classList.add("ended");
+    } else {
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      element.textContent = `남은 시간 ${minutes}:${seconds
+        .toString()
+        .padStart(2, "0")}`;
+    }
+  });
+}
+
 let donationUpdaterInterval = null; // 인터벌 ID를 저장할 변수
 
 // 실시간으로 후원액을 업데이트하는 함수
@@ -678,13 +826,28 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateDonationAmounts();
   applyTooltip();
 
+  // 팝업이 열려있는 동안 0.5초마다 승부예측 타이머 업데이트
+  let predictionTimerInterval = null;
+  if (predictionTimerInterval) clearInterval(predictionTimerInterval);
+  predictionTimerInterval = setInterval(updatePredictionTimers, 500);
+
+  if (predictionUpdaterInterval) clearInterval(predictionUpdaterInterval);
+  predictionUpdaterInterval = setInterval(updateActivePredictionDetails, 10000); // 10초마다 실시간 갱신
+
   /**
    * 스토리지 변경 감시자
    * background.js에 의해 알림 데이터가 변경되면, 팝업 UI를 실시간으로 새로고침합니다.
    */
   chrome.storage.onChanged.addListener((changes, namespace) => {
     // 'local' 스토리지에서 'notificationHistory'가 변경되었을 때만 반응합니다.
-    if (namespace === "local" && changes.notificationHistory) {
+    if (
+      namespace === "local" &&
+      (changes.notificationHistory || changes.predictionStatus)
+    ) {
+      if (suppressNextStorageRerender) {
+        suppressNextStorageRerender = false;
+        return;
+      }
       console.log("알림 내역 변경 감지됨, UI를 새로고침합니다.");
       renderNotificationCenter(); // 알림 센터를 다시 렌더링하는 함수 호출
     }
@@ -713,6 +876,14 @@ window.addEventListener("unload", () => {
 
   if (donationUpdaterInterval) {
     clearInterval(donationUpdaterInterval);
+  }
+
+  if (predictionTimerInterval) {
+    clearInterval(predictionTimerInterval);
+  }
+
+  if (predictionUpdaterInterval) {
+    clearInterval(predictionUpdaterInterval);
   }
 });
 
@@ -985,6 +1156,7 @@ function initializeAllToggles() {
       toggleId: "logpower-display-pause-toggle",
       storageKey: "isLogPowerDisplayPaused",
     },
+    { toggleId: "prediction-pause-toggle", storageKey: "isPredictionPaused" },
     { toggleId: "party-pause-toggle", storageKey: "isPartyPaused" },
     { toggleId: "restrict-pause-toggle", storageKey: "isRestrictPaused" },
     { toggleId: "video-pause-toggle", storageKey: "isVideoPaused" },
@@ -1009,6 +1181,10 @@ function initializeAllToggles() {
       storageKey: "isWatchPartyKeepPaused",
     },
     { toggleId: "drops-keep-pause-toggle", storageKey: "isDropsKeepPaused" },
+    {
+      toggleId: "prediction-keep-pause-toggle",
+      storageKey: "isPredictionKeepPaused",
+    },
     {
       toggleId: "logpower-summary-keep-pause-toggle",
       storageKey: "isLogPowerSummaryKeepPaused",
@@ -1292,7 +1468,13 @@ function getComparableAttachesString(attaches) {
 /**
  * 알림 객체의 핵심 데이터만 뽑아 '서명(signature)'을 만드는 함수
  */
-function makeSig(item, liveStatusMap, partyDonationStatusMap, partyStatusMap) {
+function makeSig(
+  item,
+  liveStatusMap,
+  partyDonationStatusMap,
+  partyStatusMap,
+  predictionStatusMap
+) {
   // 모든 타입에 대해 read 상태를 시그니처에 포함
   const isCurrentlyLive = liveStatusMap[item.channelId]?.live || false;
   const commonSig = { id: item.id, read: item.read, live: isCurrentlyLive };
@@ -1342,6 +1524,32 @@ function makeSig(item, liveStatusMap, partyDonationStatusMap, partyStatusMap) {
       content: item.content, // 동영상 제목
       thumbnailImageUrl: item.thumbnailImageUrl, // 썸네일 URL
     });
+  } else if (item.type === "PREDICTION_START") {
+    // 팝업에 실시간으로 반영되어야 할 모든 데이터를 시그니처에 포함
+    const currentPredictionStatus = predictionStatusMap[item.channelId];
+    let liveDetails = item; // 기본값은 히스토리 스냅샷
+
+    // background가 갱신한 최신 'details'가 있고, predictionId가 일치하면 그것을 사용
+    if (
+      currentPredictionStatus &&
+      currentPredictionStatus.details &&
+      currentPredictionStatus.predictionId === item.predictionId &&
+      (currentPredictionStatus.details.status === "ACTIVE" ||
+        currentPredictionStatus.details.status === "EXPIRED" ||
+        currentPredictionStatus.details.status === "COMPLETED")
+    ) {
+      // ACTIVE 상태일 때만
+      liveDetails = currentPredictionStatus.details;
+    }
+
+    return JSON.stringify({
+      ...commonSig,
+      status: liveDetails.status, // "ACTIVE"
+      remainingDuration: liveDetails.remainingDuration,
+      // 옵션 리스트 전체를 JSON으로 변환하여 시그니처에 포함
+      optionListSig: JSON.stringify(liveDetails.optionList),
+      participation: JSON.stringify(liveDetails.participation),
+    });
   }
   // 다른 일반 항목들을 위한 기본 시그니처 (필요에 따라 확장)
   return JSON.stringify(commonSig);
@@ -1355,11 +1563,18 @@ function signatureChanged(
   item,
   liveStatusMap,
   partyDonationStatusMap,
-  partyStatusMap
+  partyStatusMap,
+  predictionStatusMap
 ) {
   return (
     prevSig !==
-    makeSig(item, liveStatusMap, partyDonationStatusMap, partyStatusMap)
+    makeSig(
+      item,
+      liveStatusMap,
+      partyDonationStatusMap,
+      partyStatusMap,
+      predictionStatusMap
+    )
   );
 }
 
@@ -1850,6 +2065,169 @@ function patchPartyNode(
   }
 }
 
+/**
+ * PREDICTION_START 노드의 내용만 부분적으로 업데이트하는 함수
+ */
+function patchPredictionNode(el, item, liveStatusMap, predictionStatusMap) {
+  // 1. 공통 속성 (읽음, 라이브 상태) 업데이트
+  patchGenericNode(el, item, liveStatusMap);
+
+  // 2. 실시간 데이터 가져오기
+  const currentPredictionStatus = predictionStatusMap[item.channelId];
+  let liveDetails = item; // 기본값은 히스토리의 스냅샷
+
+  // background가 갱신한 최신 'details'가 있고, predictionId가 일치하면 그것을 사용
+  if (
+    currentPredictionStatus &&
+    currentPredictionStatus.details &&
+    currentPredictionStatus.predictionId === item.predictionId &&
+    (currentPredictionStatus.details.status === "ACTIVE" ||
+      currentPredictionStatus.details.status === "EXPIRED" ||
+      currentPredictionStatus.details.status === "COMPLETED" ||
+      currentPredictionStatus.details.status === "CANCELLED")
+  ) {
+    liveDetails = currentPredictionStatus.details;
+  }
+
+  // 3. 타이머 업데이트
+  const timerEl = el.querySelector(".prediction-timer");
+  if (timerEl) {
+    // 타이머 로직은 data-속성을 기반으로 작동하므로, 속성만 갱신
+    // item.timestamp (알림 생성 시각)을 startTime으로 사용
+    const renderTime = liveDetails.fetchedAt || Date.now(); // 갱신되는 현재 시각
+    timerEl.dataset.renderTime = String(renderTime);
+    timerEl.dataset.duration = String(liveDetails.remainingDuration ?? 0); // API 2의 'remainingDuration'
+
+    // 서버 기준 절대 만료 시각을 dataset에 추가
+    if (typeof liveDetails.expireAt === "number") {
+      timerEl.dataset.expireAt = String(liveDetails.expireAt);
+    }
+  }
+
+  // --- 상태별 갱신 분기 처리 ---
+
+  // 3-1. "CANCELLED" (취소됨) 상태 처리
+  if (liveDetails.status === "CANCELLED") {
+    if (timerEl) {
+      timerEl.textContent = "승부예측이 취소되었습니다";
+      timerEl.classList.add("ended");
+    }
+    // 옵션 리스트와 내 베팅 정보를 숨김
+    const optionListEl = el.querySelector(".prediction-option-list");
+    if (optionListEl) optionListEl.style.display = "none";
+    const myBetEl = el.querySelector(".prediction-my-bet");
+    if (myBetEl) myBetEl.style.display = "none";
+
+    el.dataset.predictionStatus = "CANCELLED"; // 현재 상태 저장
+    return; // 갱신 종료
+  }
+
+  // 3-2. "EXPIRED" (참여 마감, 집계 중) 상태 처리
+  const currentStatus = el.dataset.predictionStatus; // UI에 마지막으로 렌더링된 상태
+  const newStatus = liveDetails.status;
+
+  // 새 상태가 EXPIRED인데, UI가 이미 EXPIRED 또는 COMPLETED라면 갱신 안 함
+  // (1분 주기 background.js의 변동하는 중간 집계 값 차단)
+  if (
+    newStatus === "EXPIRED" &&
+    (currentStatus === "EXPIRED" || currentStatus === "COMPLETED")
+  ) {
+    return; // 갱신 종료
+  }
+
+  // "ACTIVE" -> "EXPIRED" (첫 1회) 또는 "EXPIRED" -> "COMPLETED"는 통과
+  el.dataset.predictionStatus = newStatus; // 새 상태를 UI에 저장
+
+  // 4. 옵션 리스트 업데이트
+  const optionListEl = el.querySelector(".prediction-option-list");
+  if (optionListEl) {
+    const optionMap = new Map(
+      Array.from(optionListEl.children).map((optEl) => [
+        optEl.dataset.optionNo,
+        optEl,
+      ])
+    );
+
+    const mySelectionNo = liveDetails.participation?.selectedOptionNo;
+    const options = Array.isArray(liveDetails.optionList)
+      ? liveDetails.optionList
+      : [];
+
+    const totalLogPowersAll =
+      options.reduce((acc, o) => acc + (o.totalLogPowers || 0), 0) || 1;
+
+    const titleEl = el.querySelector(".prediction-title");
+    if (titleEl) {
+      const subtitleEl = titleEl.querySelector(".prediction-subtitle");
+      if (subtitleEl) {
+        subtitleEl.innerHTML = `${logPowerPredictionVersusSVG} ${formatKoreanNumber(
+          totalLogPowersAll
+        )} 파워가 걸린 명승부`;
+      }
+    }
+
+    options.forEach((option) => {
+      const optEl = optionMap.get(String(option.optionNo));
+      if (!optEl) return; // 맵에 없는 옵션 (이론상으론 없어야 함)
+
+      const bar = optEl.querySelector(".prediction-option-bar");
+      const percentText = optEl.querySelector(".prediction-option-percent");
+      const stats = optEl.querySelector(".prediction-option-stats");
+
+      const percentage = (option.totalLogPowers / totalLogPowersAll) * 100;
+
+      if (bar) bar.style.width = `${percentage}%`;
+      if (percentText) percentText.textContent = `${Math.round(percentage)}%`;
+      if (stats) {
+        stats.innerHTML = `
+            ${makeLogPowerSVG()}${option.totalLogPowers.toLocaleString()}
+            (${option.participantCount.toLocaleString()}명)
+            <span class="prediction-dist-rate">분배율: ${option.distributionRate.toFixed(
+              2
+            )}</span>
+          `;
+      }
+
+      // 내 선택 하이라이트
+      optEl.classList.toggle("my-selection", option.optionNo === mySelectionNo);
+    });
+
+    // 내 베팅 정보 업데이트
+    let myBetEl = el.querySelector(".prediction-my-bet");
+    const predictionWrapper = el.querySelector(".prediction-wrapper");
+
+    if (mySelectionNo) {
+      if (!myBetEl) {
+        // 참여 정보가 생겼는데 .prediction-my-bet 요소가 없으면 새로 생성
+        myBetEl = document.createElement("div");
+        myBetEl.className = "prediction-my-bet";
+        if (predictionWrapper) {
+          predictionWrapper.appendChild(myBetEl);
+        }
+      }
+
+      // 요소가 원래 있었거나 방금 생성되었으므로, 내용을 업데이트
+      const myOption = options.find((o) => o.optionNo === mySelectionNo);
+      myBetEl.innerHTML = `
+          나의 선택: <b>${myOption ? myOption.optionText : "..."}</b> 
+          ${makeLogPowerSVG()} <span>${(
+        liveDetails.participation?.bettingPowers || 0
+      ).toLocaleString()}</span>
+      ${
+        myOption.distributionRate
+          ? ` | 예상 획득 파워: <span class="prediction-dist-rate">${makeLogPowerSVG()} ${Math.floor(
+              liveDetails.participation?.bettingPowers *
+                myOption.distributionRate.toFixed(2)
+            ).toLocaleString()}</span>`
+          : ""
+      }
+        `;
+    } else if (!mySelectionNo && myBetEl) {
+      myBetEl.remove(); // 참여하지 않게 된 경우(매우 드묾)
+    }
+  }
+}
+
 function animateRemove(el) {
   return new Promise((resolve) => {
     // 강제 리플로우는 1회만
@@ -1928,7 +2306,8 @@ function renderList(
           item,
           liveStatusMap,
           partyDonationStatusMap,
-          partyStatusMap
+          partyStatusMap,
+          virtualState.predictionStatusMap
         )
       ) {
         if (item.type === "PARTY_START") {
@@ -1939,15 +2318,28 @@ function renderList(
             partyDonationStatusMap,
             partyStatusMap
           ); // 파티 전용 패치
+        } else if (item.type === "PREDICTION_START") {
+          patchPredictionNode(
+            el,
+            item,
+            liveStatusMap,
+            virtualState.predictionStatusMap
+          );
         } else {
-          patchGenericNode(el, item, liveStatusMap); // 그 외 모든 타입 범용 패치
+          patchGenericNode(
+            el,
+            item,
+            liveStatusMap,
+            virtualState.predictionStatusMap
+          ); // 그 외 모든 타입 범용 패치
         }
       }
       el.__sig = makeSig(
         item,
         liveStatusMap,
         partyDonationStatusMap,
-        partyStatusMap
+        partyStatusMap,
+        virtualState.predictionStatusMap
       ); // 다음 비교를 위한 시그니처 저장
       frag.appendChild(el); // 기존 노드를 새 위치로 "이동"
       curNodes.delete(id);
@@ -1957,13 +2349,15 @@ function renderList(
         item,
         liveStatusMap,
         partyDonationStatusMap,
-        partyStatusMap
+        partyStatusMap,
+        virtualState.predictionStatusMap
       );
       el.__sig = makeSig(
         item,
         liveStatusMap,
         partyDonationStatusMap,
-        partyStatusMap
+        partyStatusMap,
+        virtualState.predictionStatusMap
       );
       frag.appendChild(el);
     }
@@ -1996,6 +2390,9 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     "mark-party-donation-btn"
   );
   const markLogPowerBtn = document.getElementById("mark-logpower-btn");
+  const markLogPowerPredictionBtn = document.getElementById(
+    "mark-logpower-prediction-btn"
+  );
   const markRestrictBtn = document.getElementById("mark-restrict-btn");
   const markVideoBtn = document.getElementById("mark-video-btn");
   const markCommunityBtn = document.getElementById("mark-community-btn");
@@ -2013,12 +2410,14 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     liveStatus: _liveStatus,
     partyStatus: _partyStatus,
     partyDonationStatus: _partyDonationStatus,
+    predictionStatus: _predictionStatus,
     displayLimit: _displayLimit,
   } = await chrome.storage.local.get([
     "notificationHistory",
     "liveStatus",
     "partyStatus",
     "partyDonationStatus",
+    "predictionStatus",
     "displayLimit",
   ]);
 
@@ -2053,6 +2452,11 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     } else if (currentFilter === "LOGPOWER") {
       filteredHistory = displayHistory.filter(
         (item) => item.type === "LOGPOWER" || item.type === "LOGPOWER/SUMMARY"
+      );
+    } else if (currentFilter === "PREDICTION") {
+      filteredHistory = displayHistory.filter(
+        (item) =>
+          item.type === "PREDICTION_START" || item.type === "PREDICTION_END"
       );
     } else {
       filteredHistory = displayHistory.filter(
@@ -2120,6 +2524,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
   virtualState.liveStatusMap = _liveStatus ?? {};
   virtualState.partyDonationStatusMap = _partyDonationStatus ?? {};
   virtualState.partyStatusMap = _partyStatus ?? {};
+  virtualState.predictionStatusMap = _predictionStatus ?? {};
   virtualState.loading = false;
   virtualState.filteredCount = filteredHistory.length;
   virtualState.displayLimit = displayLimit;
@@ -2213,6 +2618,12 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
           markLogPowerBtn.style.display = "flex";
           markLogPowerBtn.style.alignItems = "center";
           markLogPowerBtn.title = "통나무 파워";
+          break;
+        case "PREDICTION_START":
+        case "PREDICTION_END":
+          markLogPowerPredictionBtn.style.display = "flex";
+          markLogPowerPredictionBtn.style.alignItems = "center";
+          markLogPowerPredictionBtn.title = "통나무 파워 승부예측";
           break;
         case "ADULT":
           markRestrictBtn.style.display = "flex";
@@ -2371,6 +2782,11 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
       if (currentFilter === "LOGPOWER") {
         return item.type === "LOGPOWER" || item.type === "LOGPOWER/SUMMARY";
       }
+      if (currentFilter === "PREDICTION") {
+        return (
+          item.type === "PREDICTION_START" || item.type === "PREDICTION_END"
+        );
+      }
       return item.type === currentFilter;
     };
 
@@ -2456,6 +2872,11 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
 
   markLogPowerBtn.onclick = () => {
     currentFilter = "LOGPOWER";
+    renderNotificationCenter({ resetScroll: true });
+  };
+
+  markLogPowerPredictionBtn.onclick = () => {
+    currentFilter = "PREDICTION";
     renderNotificationCenter({ resetScroll: true });
   };
 
@@ -3201,7 +3622,8 @@ function createNotificationNode(
   item,
   liveStatusMap,
   partyDonationStatusMap,
-  partyStatusMap
+  partyStatusMap,
+  predictionStatusMap
 ) {
   // *** 현재 라이브 상태를 liveStatusMap에서 확인 ***
   const currentLiveStatus = liveStatusMap[item.channelId];
@@ -3374,6 +3796,12 @@ function createNotificationNode(
   } else if (item.type === "LOGPOWER/SUMMARY") {
     contentType = logPowerTitleSVG; //"🪵";
     contentTitle = "통나무 파워 요약이 도착했어요";
+  } else if (item.type === "PREDICTION_START") {
+    contentType = logPowerPredictionStartSVG; // "🎲";
+    contentTitle = item.channelName + "님이 승부예측을 시작했어요";
+  } else if (item.type === "PREDICTION_END") {
+    contentType = logPowerPredictionEndSVG; // "🏁";
+    contentTitle = item.channelName + "님의 승부예측이 종료됐어요";
   } else if (item.type === "LOUNGE") {
     contentType = loungeSVG; // "🧀";
     contentTitle = item.channelName + "님이 새 라운지 글을 작성했어요";
@@ -4199,12 +4627,12 @@ function createNotificationNode(
         if (external > 0) {
           const chip = document.createElement("span");
           chip.className = "badge external-gain-chip";
-          chip.title = `기타 획득: ${external.toLocaleString()} (모바일, 다른 PC 또는 누락된 획득량)`;
-          // (현재 총 ${Number(
-          //   c.externalCurrentAmount || 0
-          // ).toLocaleString()} / 기준 ${Number(
-          //   c.externalKnownAmount || 0
-          // ).toLocaleString()})`;
+          chip.title = `기타 획득: ${external.toLocaleString()} (모바일, 다른 PC 또는 누락된 획득량)
+          (현재 총 ${Number(
+            c.externalCurrentAmount || 0
+          ).toLocaleString()} / 기준 ${Number(
+            c.externalKnownAmount || 0
+          ).toLocaleString()})`;
           chip.textContent = `기타 ${external.toLocaleString()}`;
           chips.appendChild(chip);
         }
@@ -4231,8 +4659,212 @@ function createNotificationNode(
       list.appendChild(li);
     });
 
-    wrap.append(header, list);
+    const helperText = document.createElement("div");
+    helperText.className = "logpower-summary-helper-text";
+    helperText.textContent =
+      "*기타 획득의 경우 실제와 차이가 있을 수 있습니다 (모바일, 다른 PC 또는 누락된 획득량)";
+
+    wrap.append(header, list, helperText);
     messageDiv.append(wrap);
+  } else if (item.type === "PREDICTION_START") {
+    const currentPredictionStatus = predictionStatusMap[item.channelId];
+    let liveDetails = item;
+    let renderTime = new Date(item.timestamp).getTime();
+    // background가 갱신한 최신 'details'가 있고, predictionId가 일치하면 그것을 사용
+    if (
+      currentPredictionStatus &&
+      currentPredictionStatus.details &&
+      currentPredictionStatus.predictionId === item.predictionId &&
+      (currentPredictionStatus.details.status === "ACTIVE" ||
+        currentPredictionStatus.details.status === "EXPIRED" ||
+        currentPredictionStatus.details.status === "COMPLETED")
+    ) {
+      liveDetails = currentPredictionStatus.details;
+      renderTime = liveDetails.fetchedAt || Date.now();
+    }
+
+    const predictionWrapper = document.createElement("div");
+    predictionWrapper.className = "prediction-wrapper";
+
+    // 현재 렌더링하는 상태를 dataset에 저장
+    predictionWrapper.dataset.predictionStatus = liveDetails.status;
+
+    const title = document.createElement("div");
+    title.className = "prediction-title";
+    title.textContent = item.predictionTitle;
+
+    const timer = document.createElement("div");
+    timer.className = "prediction-timer";
+
+    // 타이머 로직을 위해 알림 생성 시각과 API 2의 'remainingDuration'을 저장
+    const startTime = new Date(item.timestamp).getTime();
+    timer.dataset.startTime = String(startTime);
+    timer.dataset.renderTime = String(renderTime); // API 2가 불려진 시각
+    timer.dataset.duration = String(liveDetails.remainingDuration ?? 0);
+
+    // 서버 기준 절대 만료 시각을 dataset에 추가
+    if (typeof liveDetails.expireAt === "number") {
+      timer.dataset.expireAt = String(liveDetails.expireAt);
+    }
+
+    predictionWrapper.append(title, timer);
+
+    const optionListEl = document.createElement("ul");
+    optionListEl.className = "prediction-option-list";
+
+    const mySelectionNo = liveDetails.participation?.selectedOptionNo;
+    const options = Array.isArray(liveDetails.optionList)
+      ? liveDetails.optionList
+      : [];
+    // 0으로 나누는 것을 방지하기 위해 || 1 추가
+    const totalLogPowersAll =
+      options.reduce((acc, o) => acc + (o.totalLogPowers || 0), 0) || 1;
+
+    const subtitle = document.createElement("span");
+    subtitle.className = "prediction-subtitle";
+    subtitle.innerHTML = `${logPowerPredictionVersusSVG} ${formatKoreanNumber(
+      totalLogPowersAll
+    )} 파워가 걸린 명승부`;
+    title.appendChild(subtitle);
+
+    options.forEach((option) => {
+      const li = document.createElement("li");
+      li.className = "prediction-option-item";
+      li.dataset.optionNo = option.optionNo;
+      if (option.optionNo === mySelectionNo) {
+        li.classList.add("my-selection");
+      }
+
+      const percentage = (option.totalLogPowers / totalLogPowersAll) * 100;
+
+      li.innerHTML = `
+        <div class="prediction-option-bar" style="width: ${percentage}%"></div>
+        <div class="prediction-option-content">
+          <span class="prediction-option-text">${option.optionText}</span>
+          <span class="prediction-option-stats">
+            ${makeLogPowerSVG()}${option.totalLogPowers.toLocaleString()}
+            (${option.participantCount.toLocaleString()}명)
+            <span class="prediction-dist-rate">분배율: ${option.distributionRate.toFixed(
+              2
+            )}</span>
+          </span>
+        </div>
+        <div class="prediction-option-percent">${Math.round(percentage)}%</div>
+      `;
+      optionListEl.appendChild(li);
+    });
+
+    predictionWrapper.appendChild(optionListEl);
+
+    if (mySelectionNo) {
+      const myBet = document.createElement("div");
+      myBet.className = "prediction-my-bet";
+      const myOption = options.find((o) => o.optionNo === mySelectionNo);
+      myBet.innerHTML = `
+          나의 선택: <b>${myOption ? myOption.optionText : "..."}</b> 
+          ${makeLogPowerSVG()} <span>${(
+        liveDetails.participation?.bettingPowers || 0
+      ).toLocaleString()}</span>
+      ${
+        myOption.distributionRate
+          ? ` | 예상 획득 파워: <span class="prediction-dist-rate">${makeLogPowerSVG()} ${Math.floor(
+              liveDetails.participation?.bettingPowers *
+                myOption.distributionRate.toFixed(2)
+            ).toLocaleString()}</span>`
+          : ""
+      }
+        `;
+      predictionWrapper.appendChild(myBet);
+    }
+
+    messageDiv.appendChild(predictionWrapper);
+  } else if (item.type === "PREDICTION_END") {
+    const predictionWrapper = document.createElement("div");
+    predictionWrapper.className = "prediction-wrapper end";
+
+    const title = document.createElement("div");
+    title.className = "prediction-title";
+    title.textContent = item.predictionTitle;
+    predictionWrapper.append(title);
+
+    const optionListEl = document.createElement("ul");
+    optionListEl.className = "prediction-option-list";
+
+    const mySelectionNo = item.participation?.selectedOptionNo;
+    const winningOptionNo = item.winningOptionNo;
+    const totalLogPowersAll =
+      item.optionList.reduce((acc, o) => acc + o.totalLogPowers, 0) || 1;
+
+    const subtitle = document.createElement("span");
+    subtitle.className = "prediction-subtitle";
+    subtitle.innerHTML = `${logPowerPredictionVersusSVG} ${formatKoreanNumber(
+      totalLogPowersAll
+    )} 파워가 걸린 명승부`;
+    title.appendChild(subtitle);
+
+    item.optionList.forEach((option) => {
+      const li = document.createElement("li");
+      li.className = "prediction-option-item";
+      li.dataset.optionNo = option.optionNo;
+
+      const isWinner = option.optionNo === winningOptionNo;
+      const isMySelection = option.optionNo === mySelectionNo;
+
+      if (isWinner) li.classList.add("winner");
+      if (isMySelection) li.classList.add("my-selection");
+
+      const percentage = (option.totalLogPowers / totalLogPowersAll) * 100;
+
+      li.innerHTML = `
+        <div class="prediction-option-bar" style="width: ${percentage}%"></div>
+        <div class="prediction-option-content">
+          <span class="prediction-option-text">
+            ${option.optionText}
+          </span>
+          <span class="prediction-option-stats">
+            ${makeLogPowerSVG()}${option.totalLogPowers.toLocaleString()}
+            (${option.participantCount.toLocaleString()}명)
+            <span class="prediction-dist-rate">분배율: ${option.distributionRate.toFixed(
+              2
+            )}</span>
+          </span>
+        </div>
+        <div class="prediction-option-percent">${Math.round(percentage)}%</div>
+      `;
+      optionListEl.appendChild(li);
+    });
+
+    predictionWrapper.appendChild(optionListEl);
+
+    if (item.participation) {
+      const myResult = document.createElement("div");
+      myResult.className = "prediction-my-result";
+      const myOption = item.optionList.find(
+        (o) => o.optionNo === mySelectionNo
+      );
+
+      let resultText = "";
+      if (item.participation.status === "WON") {
+        myResult.classList.add("won");
+        resultText = `🎉 <b>적중! + ${makeLogPowerSVG()} ${item.participation.winningPowers.toLocaleString()}</b>`;
+      } else if (item.participation.status === "LOST") {
+        myResult.classList.add("lost");
+        resultText = `😢 <b>빗나감</b>`;
+      } else {
+        resultText = `<b>종료</b>`; // e.g. Cancelled
+      }
+
+      myResult.innerHTML = `
+          나의 선택: <b>${myOption ? myOption.optionText : "..."}</b> 
+          ${makeLogPowerSVG()} <span>${(
+        item.participation?.bettingPowers || 0
+      ).toLocaleString()}</span> | 
+          <span class="prediction-result-status">${resultText}</span>
+        `;
+      predictionWrapper.appendChild(myResult);
+    }
+
+    messageDiv.appendChild(predictionWrapper);
   } else if (item.type === "LOUNGE") {
     const span = document.createElement("span");
     span.className = "lounge-board";
@@ -4467,10 +5099,11 @@ const SOUND_TYPES = [
   { key: "watchParty", label: "같이보기" },
   { key: "drops", label: "드롭스" },
   { key: "logpower", label: "통나무 파워" },
+  { key: "prediction", label: "승부 예측" },
+  { key: "video", label: "다시보기/동영상" },
   { key: "party", label: "파티" },
   { key: "donation", label: "파티 후원" },
   { key: "restrict", label: "연령 제한 설정" },
-  { key: "video", label: "다시보기/동영상" },
   { key: "community", label: "커뮤니티" },
   { key: "lounge", label: "치지직 라운지" },
   { key: "banner", label: "배너" },
@@ -4483,6 +5116,7 @@ const DEFAULT_SOUND_SETTINGS = {
   liveTitle: { enabled: true, file: "notification_4.wav", volume: 0.45 },
   watchParty: { enabled: true, file: "notification_7.mp3", volume: 0.3 },
   drops: { enabled: true, file: "notification_9.mp3", volume: 0.35 },
+  prediction: { enabled: true, file: "notification_16.mp3", volume: 0.3 },
   logpower: { enabled: true, file: "notification_6.wav", volume: 0.5 },
   party: { enabled: true, file: "notification_10.wav", volume: 1.0 },
   donation: { enabled: true, file: "notification_16.mp3", volume: 0.3 },
@@ -4788,7 +5422,6 @@ function buildMasterRow() {
 
   const rowLabel = document.createElement("div");
   rowLabel.className = "row-label";
-  rowLabel.style.marginBottom = "2.5px";
   rowLabel.textContent = "전체 소리";
 
   const rowToggle = document.createElement("div");
@@ -4807,6 +5440,8 @@ function buildMasterRow() {
 
   label.append(input, sliderSpan);
   rowToggle.appendChild(label);
+
+  rowLabel.appendChild(rowToggle);
 
   const vol = document.createElement("div");
   vol.className = "row-master-vol";
@@ -4831,7 +5466,7 @@ function buildMasterRow() {
 
   const div = document.createElement("div");
 
-  masterRow.append(rowLabel, rowToggle, vol, badge, div);
+  masterRow.append(rowLabel, vol, badge, div);
 
   return masterRow;
 }
@@ -4983,6 +5618,8 @@ async function initializeSoundSettings() {
   const closeBtn = document.getElementById("sound-settings-close");
   const resetBtn = document.getElementById("sound-settings-reset");
 
+  const header = panel.querySelector(".sound-settings-header");
+
   const render = async () => {
     grid.innerHTML = "";
     const settings = await loadSoundSettings();
@@ -4999,7 +5636,8 @@ async function initializeSoundSettings() {
     // 완성된 모든 row를 한 번에 DOM에 추가
     rows.forEach((row) => grid.appendChild(row));
 
-    grid.appendChild(buildMasterRow());
+    panel.insertBefore(buildMasterRow(), grid);
+
     await wireMasterControls();
   };
 
@@ -5262,4 +5900,74 @@ function initializeBookmark() {
   };
 
   btn.addEventListener("click", open);
+}
+
+/**
+ * 팝업에 표시된 'ACTIVE' 상태의 승부예측만 10초마다 강제 갱신하는 함수
+ */
+async function updateActivePredictionDetails() {
+  if (!virtualState || !virtualState.predictionStatusMap) return;
+
+  const currentStatusMap = virtualState.predictionStatusMap;
+  const channelsToUpdate = [];
+
+  // 1. virtualState에서 'ACTIVE' 상태인 예측만 찾아냄
+  for (const [channelId, state] of Object.entries(currentStatusMap)) {
+    if (
+      state &&
+      state.details &&
+      state.details.status === "ACTIVE" &&
+      state.predictionId
+    ) {
+      channelsToUpdate.push({
+        channelId: channelId,
+        predictionId: state.predictionId,
+      });
+    }
+  }
+
+  if (channelsToUpdate.length === 0) return; // 갱신할 항목이 없으면 종료
+
+  try {
+    // 2. background.js에 최신 details를 병렬로 요청
+    await Promise.all(
+      channelsToUpdate.map(async ({ channelId, predictionId }) => {
+        const response = await chrome.runtime.sendMessage({
+          type: "GET_PREDICTION_DETAILS",
+          channelId,
+          predictionId,
+        });
+
+        if (response && response.ok && response.content) {
+          // 3. virtualState의 맵을 최신 `details`로 덮어씀
+          virtualState.predictionStatusMap[channelId] = {
+            ...virtualState.predictionStatusMap[channelId],
+            details: response.content,
+          };
+        } else {
+          // 응답이 실패하면 (e.g., 취소됨, 404)
+          // virtualState의 상태를 변경하여 다음 폴링 대상에서 제외
+          if (virtualState.predictionStatusMap[channelId]) {
+            virtualState.predictionStatusMap[channelId].details = {
+              ...(virtualState.predictionStatusMap[channelId].details || {}),
+              status: "CANCELLED", // 'ACTIVE'가 아닌 임의의 값
+            };
+          }
+        }
+      })
+    );
+
+    // 4. 모든 갱신이 완료된 후, renderList를 호출하여 UI를 패치(patch)
+    renderList(
+      virtualState.items,
+      virtualState.liveStatusMap,
+      virtualState.partyDonationStatusMap,
+      virtualState.partyStatusMap
+    );
+  } catch (e) {
+    console.warn("Prediction fast update failed:", e);
+    if (predictionUpdaterInterval) {
+      clearInterval(predictionUpdaterInterval);
+    }
+  }
 }

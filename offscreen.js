@@ -106,7 +106,7 @@ chrome.runtime.onMessage.addListener((msg) => {
         gain.gain.value = volume;
 
         if (ctx && ctx.state === "suspended") ctx.resume();
-        audio.play();
+        await audio.play();
 
         lastPlayAt = Date.now();
         scheduleAutoClose();
@@ -114,5 +114,7 @@ chrome.runtime.onMessage.addListener((msg) => {
         console.warn("[offscreen] play failed:", e);
       }
     })();
+
+    return true;
   }
 });
