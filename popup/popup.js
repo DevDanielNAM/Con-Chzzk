@@ -566,6 +566,9 @@ function applyTooltip() {
     "display-limit-settings-btn"
   );
   const toggleFoldBtn = document.getElementById("toggle-fold-btn");
+  const thumbnailToggleBtn = document.getElementById(
+    "video-thumbnail-toggle-btn"
+  );
   const bookmarkBtn = document.getElementById("bookmark-btn");
 
   if (
@@ -576,6 +579,7 @@ function applyTooltip() {
     !settingsBtn &&
     !displayLimitSettingsBtn &&
     !toggleFoldBtn &&
+    !thumbnailToggleBtn &&
     !bookmarkBtn
   ) {
     return;
@@ -588,6 +592,7 @@ function applyTooltip() {
     hasTooltip(logpowerSettingsBtn) &&
     hasTooltip(soundSettingsBtn) &&
     hasTooltip(settingsBtn) &&
+    hasTooltip(thumbnailToggleBtn) &&
     hasTooltip(bookmarkBtn) &&
     hasTooltip(toggleFoldBtn) &&
     hasTooltip(displayLimitSettingsBtn)
@@ -626,6 +631,10 @@ function applyTooltip() {
   toggleFoldTooltipText.className = "tooltip-text";
   toggleFoldTooltipText.textContent = "펼치기/접기";
 
+  const thumbnailToggleTooltipText = document.createElement("span");
+  thumbnailToggleTooltipText.className = "tooltip-text";
+  thumbnailToggleTooltipText.textContent = "동영상 썸네일 켜기/끄기";
+
   const bookmarkTooltipText = document.createElement("span");
   bookmarkTooltipText.className = "tooltip-text";
   bookmarkTooltipText.textContent = "북마크 목록";
@@ -644,6 +653,7 @@ function applyTooltip() {
   settingsBtn.classList.add("settings-tooltip");
   displayLimitSettingsBtn.classList.add("display-limit-settings-tooltip");
   toggleFoldBtn.classList.add("toggle-fold-tooltip");
+  thumbnailToggleBtn.classList.add("thumbnail-toggle-tooltip");
   bookmarkBtn.classList.add("bookmark-tooltip");
 
   // 4. 툴팁 텍스트를 버튼의 자식으로 추가
@@ -654,6 +664,7 @@ function applyTooltip() {
   settingsBtn.appendChild(settingsTooltipText);
   displayLimitSettingsBtn.appendChild(displayLimitSettingsTooltipText);
   toggleFoldBtn.appendChild(toggleFoldTooltipText);
+  thumbnailToggleBtn.appendChild(thumbnailToggleTooltipText);
   bookmarkBtn.appendChild(bookmarkTooltipText);
 }
 
@@ -818,6 +829,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   checkLoginStatus();
   initializeAllToggles();
   initializeLogPowerToggles();
+  initializeThumbnailToggle();
   setupNotificationChecker();
   initializeDisplayLimitSettings();
   initializeSoundSettings();
@@ -1270,6 +1282,52 @@ function initializeLogPowerToggles() {
 }
 
 /**
+ * 썸네일 숨기기 아이콘 버튼 초기화
+ */
+function initializeThumbnailToggle() {
+  const toggleBtn = document.getElementById("video-thumbnail-toggle-btn");
+  const storageKey = "isVideoThumbnailHidden";
+
+  // 중복 바인딩 방지
+  if (toggleBtn && toggleBtn.dataset.bound === "1") return;
+  if (toggleBtn) toggleBtn.dataset.bound = "1";
+
+  // 1) 스토리지값을 병렬로 요청하고, 도착 즉시 DOM 최상단 클래스에 반영
+  chrome.storage.local.get({ [storageKey]: false }, (data) => {
+    const stored = !!data[storageKey];
+
+    // 전역 상태와 버튼 클래스 동기화
+    virtualState.isVideoThumbnailHidden = stored;
+    if (toggleBtn) toggleBtn.classList.toggle("active", stored);
+
+    // 최상단에 클래스를 붙여 CSS로 즉시 썸네일 숨김 처리
+    if (stored) {
+      document.documentElement.classList.add("thumbnails-hidden");
+    } else {
+      document.documentElement.classList.remove("thumbnails-hidden");
+    }
+  });
+
+  // 2) 클릭 이벤트: 저장하고 클래스/virtualState 갱신, render 재호출
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      const newState = !toggleBtn.classList.contains("active");
+      chrome.storage.local.set({ [storageKey]: newState }, () => {
+        virtualState.isVideoThumbnailHidden = newState;
+        toggleBtn.classList.toggle("active", newState);
+
+        if (newState)
+          document.documentElement.classList.add("thumbnails-hidden");
+        else document.documentElement.classList.remove("thumbnails-hidden");
+
+        // 썸네일 변화가 즉시 반영되도록 필요 시 재렌더
+        renderNotificationCenter(); // 전체 재렌더가 무거우면, 썸네일 관련 부분만 갱신하는 함수로 대체
+      });
+    });
+  }
+}
+
+/**
  * 3. 알림 권한 확인 관련 기능을 설정하는 함수
  */
 function setupNotificationChecker() {
@@ -1539,6 +1597,7 @@ function makeSig(
       ...commonSig,
       content: item.content, // 동영상 제목
       thumbnailImageUrl: item.thumbnailImageUrl, // 썸네일 URL
+      isThumbnailHidden: virtualState.isVideoThumbnailHidden, // 썸네일 숨김 여부
     });
   } else if (item.type === "PREDICTION_START") {
     // 팝업에 실시간으로 반영되어야 할 모든 데이터를 시그니처에 포함
@@ -1682,6 +1741,7 @@ function patchGenericNode(el, item, liveStatusMap) {
   } else if (item.type === "VIDEO") {
     const messageDiv = el.querySelector(".notification-message");
     const thumbnailEl = messageDiv.querySelector("img"); // 썸네일 이미지
+
     if (messageDiv) {
       // 동영상 제목 업데이트 (br 태그 다음의 텍스트 노드)
       const contentNode = Array.from(messageDiv.childNodes).find(
@@ -1689,8 +1749,18 @@ function patchGenericNode(el, item, liveStatusMap) {
       );
       if (contentNode) contentNode.textContent = ` ${item.content}`;
     }
+
     if (thumbnailEl) {
-      thumbnailEl.src = item.thumbnailImageUrl || "../thumbnail.gif";
+      // 썸네일 숨김/표시 로직 적용
+      const isHidden = virtualState.isVideoThumbnailHidden;
+      const newSrc = isHidden
+        ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+        : item.thumbnailImageUrl || "../thumbnail.gif";
+
+      if (thumbnailEl.src !== newSrc) {
+        thumbnailEl.src = newSrc;
+      }
+      thumbnailEl.classList.toggle("thumbnail-hidden-placeholder", isHidden);
     }
   }
 }
@@ -2428,6 +2498,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     partyDonationStatus: _partyDonationStatus,
     predictionStatus: _predictionStatus,
     displayLimit: _displayLimit,
+    isVideoThumbnailHidden: _isVideoThumbnailHidden,
   } = await chrome.storage.local.get([
     "notificationHistory",
     "liveStatus",
@@ -2435,9 +2506,16 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
     "partyDonationStatus",
     "predictionStatus",
     "displayLimit",
+    "isVideoThumbnailHidden",
   ]);
 
   const displayLimit = typeof _displayLimit === "number" ? _displayLimit : 300;
+
+  const toggleBtn = document.getElementById("video-thumbnail-toggle-btn");
+  if (toggleBtn) {
+    toggleBtn.classList.toggle("active", Boolean(_isVideoThumbnailHidden));
+    virtualState.isVideoThumbnailHidden = Boolean(_isVideoThumbnailHidden);
+  }
 
   // 1) 필터링/표시 상한 계산
   const displayHistory = notificationHistory.slice(0, displayLimit);
@@ -2544,6 +2622,7 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
   virtualState.loading = false;
   virtualState.filteredCount = filteredHistory.length;
   virtualState.displayLimit = displayLimit;
+  virtualState.isVideoThumbnailHidden = _isVideoThumbnailHidden ?? false;
 
   // 4) 초기 청크 렌더 + 옵저버 부착
   renderNextChunk(); // 첫 100~200개
@@ -4962,7 +5041,14 @@ function createNotificationNode(
       span.style.marginBottom = "3px";
 
       const img = document.createElement("img");
-      img.src = imageUrl;
+
+      if (virtualState.isVideoThumbnailHidden) {
+        img.src =
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+        img.classList.add("thumbnail-hidden-placeholder");
+      } else {
+        img.src = imageUrl;
+      }
       img.loading = "lazy";
 
       const br = document.createElement("br");
@@ -4976,7 +5062,14 @@ function createNotificationNode(
       }
     } else {
       const img = document.createElement("img");
-      img.src = imageUrl;
+
+      if (virtualState.isVideoThumbnailHidden) {
+        img.src =
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+        img.classList.add("thumbnail-hidden-placeholder");
+      } else {
+        img.src = imageUrl;
+      }
       img.loading = "lazy";
 
       const br = document.createElement("br");
