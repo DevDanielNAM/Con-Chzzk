@@ -606,6 +606,7 @@ input:checked + .slider:before {
   display: block;
   margin-top: 3px;
   max-width: 150px;
+  min-height: 150px;
   border-radius: 6px;
   object-fit: cover;
 }
@@ -614,6 +615,7 @@ input:checked + .slider:before {
   display: block;
   margin-top: 3px;
   max-width: 175px;
+  min-height: 150px;
   border-radius: 6px;
   object-fit: cover;
 }
@@ -622,6 +624,7 @@ input:checked + .slider:before {
   display: block;
   margin-top: 3px;
   max-width: 115px;
+  min-height: 150px;
   border-radius: 6px;
   object-fit: cover;
 }
