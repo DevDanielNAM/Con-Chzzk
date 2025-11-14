@@ -1871,7 +1871,7 @@ async function notifyLogPowerSummary(kind, agg, start, end, label) {
     });
     // 효과음
     try {
-      await playSoundFor("logpower");
+      playSoundFor("logpower");
     } catch {}
   }
 
@@ -1974,30 +1974,15 @@ async function runLogPowerSummaries(
     "logpowerSummaryLastRun"
   );
 
-  let external = []; // 기타 획득 결과를 저장할 변수
-  try {
-    const { logpowerIncludeExternal = true } = await chrome.storage.local.get(
-      "logpowerIncludeExternal"
-    );
-
-    // 실행할 요약이 있고, 기타 획득 옵션이 켜져 있을 때만 계산
-    if (logpowerIncludeExternal && toRun.length > 0) {
-      external = await computeExternalGainsForSummary({
-        onlyActiveChannels: false,
-        transient: !!opts?.transient,
-      });
-    }
-  } catch (e) {
-    console.warn(
-      "[logpower] computeExternalGainsForSummary (pre-loop) failed:",
-      e
-    );
-  }
-
   for (const kind of toRun) {
     const { start, end, key, label } = periodBounds(kind, now);
-    // transient 모드에서는 중복검사를 건너뜀(수동 ‘오늘’ 발행용)
-    if (!opts?.transient && logpowerSummaryLastRun[kind] === key) continue;
+
+    // 'force' 옵션을 스킵 조건에 반영
+    const isAlreadyRun = logpowerSummaryLastRun[kind] === key;
+    if (!opts?.transient && isAlreadyRun && !opts?.force) {
+      // transient(오늘 수동)가 아니고, 이미 실행됐고, force(재발행)가 아니면 스킵
+      continue;
+    }
 
     // 원장이 있으면 원장 기준 집계, 없으면 notificationHistory 기반
     let agg;
@@ -2006,6 +1991,39 @@ async function runLogPowerSummaries(
       if (!agg || !Array.isArray(agg.channels)) throw new Error("ledger empty");
     } catch {
       agg = await aggregateLogPowerBetween(start, end);
+    }
+
+    let external = []; // 기타 획득 결과를 저장할 변수
+    const { logpowerIncludeExternal = true } = await chrome.storage.local.get(
+      "logpowerIncludeExternal"
+    );
+
+    if (logpowerIncludeExternal) {
+      const snapKey = `logpower_ext_snap_${key}`;
+
+      if (opts?.transient) {
+        // Case 1: 수동 '오늘' 발행 (transient: true)
+        // 항상 재계산, 스냅샷 저장 안 함
+        external = await computeExternalGainsForSummary({
+          onlyActiveChannels: false,
+          transient: true,
+        });
+      } else if (isAlreadyRun) {
+        // Case 2: 수동 '재발행' (force: true)
+        // (isAlreadyRun=true, force=true, transient=false)
+        // 스냅샷을 로드
+        external = await _loadJsonKey(snapKey, []);
+      } else {
+        // Case 3: '최초 발행' (자동 00:05 또는 수동 캐치업)
+        // (isAlreadyRun=false, transient=false)
+        // 재계산 후 스냅샷을 저장
+        external = await computeExternalGainsForSummary({
+          onlyActiveChannels: false,
+          transient: false,
+        });
+        // 스냅샷 저장
+        await _saveJsonKey(snapKey, external);
+      }
     }
 
     try {

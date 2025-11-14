@@ -5169,6 +5169,9 @@ function wireSummaryManualButtons() {
 
         // 배지/목록 등 갱신
         chrome.runtime.sendMessage({ type: "UPDATE_BADGE" });
+
+        // 수동 발행이 완료되었으므로, 팝업의 알림 목록을 즉시 새로고침
+        renderNotificationCenter();
       } catch (e) {
         result.textContent = "발행 실패: " + (e?.message || e);
       } finally {
