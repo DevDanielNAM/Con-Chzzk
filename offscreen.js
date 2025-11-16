@@ -95,7 +95,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     (async () => {
       try {
         const url = msg.file || "sounds/notification_1.wav";
-        const volume = Math.min(2, Math.max(0, Number(msg.volume ?? 0.6)));
+        const volume = Math.min(2, Math.max(0, Number(msg.volume || 0)));
 
         // 미리듣기만 기존 재생 강제 중지(겹침 방지)
         if (msg.type === "OFFSCREEN_PREVIEW") stopAllAudios();

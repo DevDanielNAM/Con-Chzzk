@@ -278,8 +278,8 @@ const logPowerTitleSVG = `<svg
             </svg>`;
 const logPowerPredictionStartSVG = `
             <svg
-              width="20"
-              height="20"
+              width="15"
+              height="15"
               viewBox="0 0 256 256"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -310,8 +310,8 @@ const logPowerPredictionStartSVG = `
             `;
 const logPowerPredictionEndSVG = `
 <svg
-              width="20"
-              height="20"
+              width="15"
+              height="15"
               viewBox="0 0 256 256"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -712,6 +712,12 @@ function updatePredictionTimers() {
   const now = Date.now();
 
   timerElements.forEach((element) => {
+    // 이미 '참여 마감', '취소됨', '완료됨' 등으로 처리된 타이머는
+    // 이 함수가 덮어쓰지 않도록 즉시 건너뜀
+    if (element.classList.contains("ended")) {
+      return;
+    }
+
     const startTime = parseInt(element.dataset.startTime, 10);
     const duration = parseInt(element.dataset.duration, 10);
 
@@ -845,25 +851,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (predictionUpdaterInterval) clearInterval(predictionUpdaterInterval);
   predictionUpdaterInterval = setInterval(updateActivePredictionDetails, 10000); // 10초마다 실시간 갱신
-
-  /**
-   * 스토리지 변경 감시자
-   * background.js에 의해 알림 데이터가 변경되면, 팝업 UI를 실시간으로 새로고침합니다.
-   */
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    // 'local' 스토리지에서 'notificationHistory'가 변경되었을 때만 반응합니다.
-    if (
-      namespace === "local" &&
-      (changes.notificationHistory || changes.predictionStatus)
-    ) {
-      if (suppressNextStorageRerender) {
-        suppressNextStorageRerender = false;
-        return;
-      }
-      console.log("알림 내역 변경 감지됨, UI를 새로고침합니다.");
-      renderNotificationCenter(); // 알림 센터를 다시 렌더링하는 함수 호출
-    }
-  });
 
   // 팝업이 열려있는 동안 10초마다 후원액 업데이트
   if (donationUpdaterInterval) clearInterval(donationUpdaterInterval);
@@ -2332,6 +2319,8 @@ function animateRemove(el) {
           // 애니메이션에 썼던 인라인/클래스 정리
           el.style.height = "";
           el.classList.remove("collapsing", "leaving");
+
+          el.remove();
           resolve();
         }
       };
@@ -2801,6 +2790,13 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
       markAllDeleteBtn.innerHTML = `${logPowerTitleSVG} &nbsp;모두 삭제`;
       markAllReadBtn.innerHTML = `${logPowerTitleSVG} &nbsp;모두 읽음`;
       break;
+    case "PREDICTION":
+      document
+        .getElementById("mark-logpower-prediction-btn")
+        .classList.add("active-filter");
+      markAllDeleteBtn.innerHTML = `${logPowerPredictionStartSVG}/${logPowerPredictionEndSVG} &nbsp;모두 삭제`;
+      markAllReadBtn.innerHTML = `${logPowerPredictionStartSVG}/${logPowerPredictionEndSVG} &nbsp;모두 읽음`;
+      break;
     case "ADULT":
       document
         .getElementById("mark-restrict-btn")
@@ -2900,16 +2896,27 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
       )
       .filter(Boolean);
 
+    const filterToDelete = currentFilter;
+
     // 가상 스크롤의 IntersectionObserver를 일시적으로 중지시켜
     //    애니메이션 도중 새 항목이 렌더링되는 것을 방지
     detachVirtualObserver();
     // 옵저버 상태 끊기 (무한 스크롤 재주입 방지)
-    if (window.virtualState) {
+    if (virtualState) {
       try {
-        virtualState.items = [];
-        virtualState.max = 0;
-        virtualState.rendered = 0;
+        // 현재 필터와 일치하지 않는 항목만 남김
+        virtualState.items = virtualState.items.filter(
+          (item) => !filterCondition(item)
+        );
+
+        // 가상 리스트 상태도 함께 갱신
+        virtualState.max = virtualState.items.length;
+        virtualState.rendered = Math.min(
+          virtualState.rendered,
+          virtualState.max
+        );
         virtualState.loading = false;
+
         if (virtualState.observer) {
           virtualState.observer.disconnect();
           virtualState.observer = null;
@@ -2923,9 +2930,12 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
       centerHeader.innerHTML = `최신 알림 <span>(0/${displayLimit})</span>`;
     }
 
+    // '모두 삭제' 시 다음 렌더링에서 스토리지 변경 무시
+    // suppressNextStorageRerender = true;
+
     chrome.runtime.sendMessage({
       type: "DELETE_ALL_FILTERED",
-      filter: currentFilter,
+      filter: filterToDelete,
       limit: Number.MAX_SAFE_INTEGER,
     });
   };
@@ -3010,29 +3020,62 @@ async function renderNotificationCenter(options = { resetScroll: false }) {
 
     // 개별 버튼 클릭을 가장 먼저 확인
     if (target.classList.contains("mark-one-delete-btn")) {
-      // 1) 먼저 UI에서 제거(애니메이션)
-      await animateRemove(itemElement);
-      itemElement.remove(); // DOM 실제 제거
+      // 1. 삭제할 아이템이 해당 날짜의 마지막 아이템인지 DOM 구조로 확인
+      const separatorElement =
+        itemElement.previousElementSibling?.classList.contains("date-separator")
+          ? itemElement.previousElementSibling
+          : null;
 
-      // 2) 가상 리스트 상태도 낙관적으로 조정
-      const idx = virtualState.items.findIndex((it) => it.id === itemId);
-      if (idx !== -1) {
-        virtualState.items.splice(idx, 1);
-        virtualState.max = Math.max(0, virtualState.max - 1);
+      let isLastItemForDate = false;
+      if (separatorElement) {
+        const nextElement = itemElement.nextElementSibling;
+        // 다음 형제가 없거나(목록 끝), 다음 형제가 (다른 날짜의) 구분자라면 마지막 아이템임
+        if (!nextElement || nextElement.classList.contains("date-separator")) {
+          isLastItemForDate = true;
+        }
+      }
+
+      const separatorToRemove = isLastItemForDate ? separatorElement : null;
+
+      // 2. 아이템 애니메이션 및 DOM 제거
+      await animateRemove(itemElement);
+      itemElement.remove();
+
+      // 3. 마지막 아이템이었다면, 날짜 구분자 DOM도 즉시 제거
+      if (separatorToRemove) {
+        separatorToRemove.remove();
+      }
+
+      // 4. 가상 리스트 상태(메모리)도 낙관적으로 조정
+      const vIdx = virtualState.items.findIndex((it) => it.id === itemId);
+      if (vIdx !== -1) {
+        virtualState.items.splice(vIdx, 1); // 아이템 제거
+        virtualState.filteredCount = Math.max(
+          0,
+          virtualState.filteredCount - 1
+        ); // 실제 아이템 카운트 감소
+
+        if (separatorToRemove) {
+          // 가상 리스트에서도 구분자 제거
+          const sepVIdx = virtualState.items.findIndex(
+            (it) => it.id === separatorToRemove.dataset.id
+          );
+          if (sepVIdx !== -1) {
+            virtualState.items.splice(sepVIdx, 1);
+          }
+        }
+
+        virtualState.max = virtualState.items.length; // virtual list의 총 길이 갱신
         virtualState.rendered = Math.min(
           virtualState.rendered,
           virtualState.max
         );
       }
 
-      if (virtualState.filteredCount > 0) {
-        virtualState.filteredCount -= 1;
-      }
-
-      // 헤더 카운트 즉시 반영
+      // 5. 헤더 카운트 즉시 반영
       updateCenterHeader();
 
-      // 3) 다음 onChanged 1회는 무시
+      // 6. 이미 UI에 반영했으므로 다음 onChanged 1회는 무시
       suppressNextStorageRerender = true;
 
       chrome.runtime.sendMessage({
@@ -5735,6 +5778,12 @@ async function initializeSoundSettings() {
 
   const render = async () => {
     grid.innerHTML = "";
+
+    const existingMasterRow = panel.querySelector(".sound-master-row");
+    if (existingMasterRow) {
+      existingMasterRow.remove();
+    }
+
     const settings = await loadSoundSettings();
     const soundOptions = await getCombinedSoundOptions();
 

@@ -756,10 +756,30 @@ async function offAllNotifications() {
   }
 
   function observeLivePage() {
+    // 1. 기존 옵저버가 있다면 연결을 해제
     disconnectObservers();
-    waitForSelectorOnce("[class*='video_information_control__']", () => {
+
+    // 2. '넓은 화면' 토글 등으로 요소가 DOM에서 제거되었다가
+    //    다시 추가되는 상황을 지속적으로 감지하기 위해
+    //    영구적인 MutationObserver를 생성
+    livePageObserver = new MutationObserver(() => {
+      // DOM에 변경이 생길 때마다 버튼 주입을 "시도"
+      // addBookmarkButtonToLivePage 함수 내부에는
+      // 이미 주입되었는지 확인하는 로직(ATTR_MARK)이 있으므로
+      // 여러 번 호출되어도 안전
       addBookmarkButtonToLivePage();
     });
+
+    // 3. body 전체의 변경 사항을 감시
+    //    (자식 노드가 추가/제거되거나, 하위 트리에 변경이 있을 때)
+    livePageObserver.observe(document.body, {
+      childList: true, // 자식 노드(요소) 추가/제거 감지
+      subtree: true, // body 하위의 모든 요소 감지
+    });
+
+    // 4. 옵저버가 감지하기 전,
+    //    페이지 진입 시점에 즉시 한 번 실행하여 버튼을 주입
+    addBookmarkButtonToLivePage();
   }
 
   function observeProfilePage() {

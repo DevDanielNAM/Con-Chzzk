@@ -15,7 +15,7 @@
 /* 툴팁 텍스트 박스 스타일 */
 .logpower-tooltip .tooltip-text {
   visibility: hidden; /* 평소에는 숨김 */
-  width: 76px;
+  width: 80px;
   background-color: var(--Surface-Neutral-Base);
   color: var(--Content-Neutral-Cool-Stronger);
   box-shadow: 0 2px 8px 0 var(--color-shadow-layer04-02),
@@ -31,7 +31,7 @@
   z-index: 9999; /* 다른 요소 위에 보이도록 z-index 설정 */
   left: 50%;
   bottom: 116%;
-  margin-left: -38px;
+  margin-left: -42px;
 
   /* 부드럽게 나타나는 효과 */
   opacity: 0;

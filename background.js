@@ -41,7 +41,6 @@ const SUMMARY_KEEP_PAUSE_KEY = "isLogPowerSummaryKeepPaused";
 // 저장 키
 const LOGPOWER_KNOWN_TOTALS_KEY = "logpower_knownTotals"; // { channelId: { amount, ts, source } }
 const LOGPOWER_LAST_PROCESSED_AT = "logpower_lastProcessedAt_by_channel"; // { channelId: ts }
-const LOGPOWER_EXTERNAL_SUMMARY_KEY = "logpower_external_summary_temp"; // 임시/마지막 요약 저장
 const LOGPOWER_CLIENT_CLAIMS_KEY = "logpower_client_claims"; // { channelId: [{ claimId, amount, ts }, ...], ... }
 
 // *** 실행 잠금을 위한 전역 변수 ***
@@ -257,15 +256,17 @@ async function computeExternalGainsForSummary({
 
       let delta = curAmt - Number(known.amount || 0);
 
-      // client가 수령한 합계(known 기준 이후 to now) 만큼 차감
-      const sinceTs = Number(lastProcessed[chId] || 0) || 0;
-      const claimedByThisClient = _sumClaimsForChannelInRange(
-        clientClaims,
-        chId,
-        sinceTs,
-        nowTs
-      );
-      delta -= claimedByThisClient;
+      if (!transient) {
+        // client가 수령한 합계(known 기준 이후 to now) 만큼 차감
+        const sinceTs = Number(lastProcessed[chId] || 0) || 0;
+        const claimedByThisClient = _sumClaimsForChannelInRange(
+          clientClaims,
+          chId,
+          sinceTs,
+          nowTs
+        );
+        delta -= claimedByThisClient;
+      }
 
       if (delta > noiseThreshold) {
         externalSummary.push({
@@ -288,7 +289,6 @@ async function computeExternalGainsForSummary({
       await Promise.all([
         _saveJsonKey(LOGPOWER_KNOWN_TOTALS_KEY, knownTotals),
         _saveJsonKey(LOGPOWER_LAST_PROCESSED_AT, lastProcessed),
-        _saveJsonKey(LOGPOWER_EXTERNAL_SUMMARY_KEY, externalSummary),
       ]);
     }
 
@@ -705,7 +705,7 @@ async function ensureOffscreenDocument() {
   // Chrome 109+ 에서는 hasDocument 지원
   if (chrome.offscreen.hasDocument) {
     const has = await chrome.offscreen.hasDocument();
-    if (has) return;
+    if (has) return false;
   }
   await chrome.offscreen.createDocument({
     url: chrome.runtime.getURL("offscreen.html"),
@@ -713,6 +713,7 @@ async function ensureOffscreenDocument() {
     justification:
       "Play a short alert sound when a followed streamer goes live",
   });
+  return true; // 문서를 새로 만듦
 }
 
 // === per-type 사운드 재생 유틸 ===
@@ -776,7 +777,9 @@ async function playSoundFor(kind) {
     const filePath =
       s.file && String(s.file).startsWith("idb:") ? s.file : `sounds/${s.file}`;
 
-    await ensureOffscreenDocument();
+    const created = await ensureOffscreenDocument();
+    if (created) await sleep(100); // 오프스크린이 준비될 때까지 잠시 대기
+
     await chrome.runtime.sendMessage({
       type: "OFFSCREEN_PLAY",
       file: filePath,
@@ -6400,12 +6403,9 @@ async function markAllRead(filter, limit) {
     if (filter === "DONATION")
       return item.type === "DONATION_START" || item.type === "DONATION_END";
     if (filter === "LOGPOWER")
-      return (
-        item.type === "LOGPOWER" ||
-        item.type === "LOGPOWER/SUMMARY" ||
-        item.type === "PREDICTION_START" ||
-        item.type === "PREDICTION_END"
-      );
+      return item.type === "LOGPOWER" || item.type === "LOGPOWER/SUMMARY";
+    if (filter === "PREDICTION")
+      return item.type === "PREDICTION_START" || item.type === "PREDICTION_END";
     return item.type === filter;
   };
 
@@ -6430,10 +6430,11 @@ async function deleteAllFiltered(filter, limit) {
     limit = Number.MAX_SAFE_INTEGER; // 무제한 간주
   }
 
-  if (isChecking) {
-    setTimeout(() => deleteAllFiltered(filter, limit), 200);
-    return;
+  while (isChecking) {
+    console.warn("deleteAllFiltered: Waiting for isChecking to be false...");
+    await sleep(250);
   }
+
   const { notificationHistory = [], dismissedNotificationIds = [] } =
     await chrome.storage.local.get([
       "notificationHistory",
@@ -6461,12 +6462,9 @@ async function deleteAllFiltered(filter, limit) {
     if (filter === "DONATION")
       return item.type === "DONATION_START" || item.type === "DONATION_END";
     if (filter === "LOGPOWER")
-      return (
-        item.type === "LOGPOWER" ||
-        item.type === "LOGPOWER/SUMMARY" ||
-        item.type === "PREDICTION_START" ||
-        item.type === "PREDICTION_END"
-      );
+      return item.type === "LOGPOWER" || item.type === "LOGPOWER/SUMMARY";
+    if (filter === "PREDICTION")
+      return item.type === "PREDICTION_START" || item.type === "PREDICTION_END";
     return item.type === filter;
   };
 
@@ -6494,10 +6492,9 @@ async function deleteAllFiltered(filter, limit) {
  */
 async function deleteNotification(notificationId) {
   // isChecking 플래그를 확인하여 checkFollowedChannels가 실행 중일 때는 대기
-  if (isChecking) {
-    // 200ms 후에 다시 시도하여 충돌 방지
-    setTimeout(() => deleteNotification(notificationId), 200);
-    return;
+  while (isChecking) {
+    console.warn("deleteAllFiltered: Waiting for isChecking to be false...");
+    await sleep(250);
   }
 
   const { notificationHistory = [], dismissedNotificationIds = [] } =
@@ -6777,15 +6774,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === "MARK_ALL_READ") {
-    markAllRead(request.filter, request.limit);
+    (async () => {
+      while (isChecking) {
+        console.warn("markAllRead: Waiting for isChecking to be false...");
+        await sleep(250);
+      }
+      await markAllRead(request.filter, request.limit);
+      sendResponse({ ok: true });
+    })();
+    return true; // async 응답
   }
 
   if (request.type === "DELETE_ALL_FILTERED") {
-    deleteAllFiltered(request.filter, request.limit);
+    (async () => {
+      while (isChecking) {
+        console.warn(
+          "deleteAllFiltered: Waiting for isChecking to be false..."
+        );
+        await sleep(250);
+      }
+      await deleteAllFiltered(request.filter, request.limit);
+      sendResponse({ ok: true });
+    })();
+    return true; // async 응답
   }
 
   if (request.type === "DELETE_NOTIFICATION") {
-    deleteNotification(request.notificationId);
+    (async () => {
+      while (isChecking) {
+        console.warn(
+          "deleteNotification: Waiting for isChecking to be false..."
+        );
+        await sleep(250);
+      }
+      await deleteNotification(request.notificationId);
+      sendResponse({ ok: true });
+    })();
+    return true; // async 응답
   }
 
   // *** 팝업의 알림 클릭 요청 처리 ***
@@ -6809,10 +6834,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           return;
         }
 
-        await ensureOffscreenDocument();
+        const created = await ensureOffscreenDocument();
+        if (created) await sleep(100);
+
         const vol = Math.min(
-          1,
-          Math.max(0, Number(request.volume ?? 0.6) * g.volume)
+          2,
+          Math.max(0, Number(request.volume || 0) * g.volume)
         );
         await chrome.runtime.sendMessage({
           type: "OFFSCREEN_PREVIEW",
@@ -6902,16 +6929,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               });
               continue;
             }
-            // force면 중복키라도 재발행되게 lastRun을 비워줌
-            if (force && logpowerSummaryLastRun[k] === key) {
-              const next = { ...logpowerSummaryLastRun };
-              delete next[k];
-              await chrome.storage.local.set({ logpowerSummaryLastRun: next });
-            }
           }
 
           await runLogPowerSummaries(anchorDate, [k], {
             transient: isTransient,
+            force: force,
           });
           results.push({
             kind: k,
@@ -6947,6 +6969,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.type === "LOG_POWER_PUT_DONE") {
     (async () => {
+      // checkFollowedChannels가 실행 중이면 끝날 때까지 대기
+      while (isChecking) {
+        console.warn("LOG_POWER_PUT_DONE is waiting for isChecking lock...");
+        await sleep(250); // 250ms 대기 후 재시도
+      }
+
       const {
         channelId,
         channelName,
@@ -7110,7 +7138,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (!channelId || !predictionId) {
           throw new Error("channelId or predictionId missing");
         }
-        //
         const details = await fetchPredictionDetails(channelId, predictionId);
         sendResponse({ ok: true, content: details });
       } catch (e) {
