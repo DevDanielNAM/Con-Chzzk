@@ -310,35 +310,47 @@ const logPowerPredictionStartSVG = `
             `;
 const logPowerPredictionEndSVG = `
 <svg
-              width="15"
-              height="15"
-              viewBox="0 0 256 256"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              xmlns:xlink="http://www.w3.org/1999/xlink"
+          width="15"
+          height="15"
+          viewBox="0 0 72 72"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlns:xlink="http://www.w3.org/1999/xlink"
+        >
+          <rect width="72" height="72" fill="url(#pattern0_70_70)"></rect>
+          <defs>
+            <pattern
+              id="pattern0_70_70"
+              patternContentUnits="objectBoundingBox"
+              width="1"
+              height="1"
             >
-              <rect width="256" height="256" fill="url(#pattern0_63_98)" />
-              <defs>
-                <pattern
-                  id="pattern0_63_98"
-                  patternContentUnits="objectBoundingBox"
-                  width="1"
-                  height="1"
-                >
-                  <use
-                    xlink:href="#image0_63_98"
-                    transform="scale(0.00390625)"
-                  />
-                </pattern>
-                <image
-                  id="image0_63_98"
-                  width="256"
-                  height="256"
-                  preserveAspectRatio="none"
-                  xlink:href="../svg_texture/log_power_prediction_end_texture.png"
-                />
-              </defs>
-            </svg>
+              <use
+                xlink:href="#image0_70_70"
+                transform="scale(0.0138889)"
+              ></use>
+            </pattern>
+            <image
+              id="image0_70_70"
+              width="72"
+              height="72"
+              preserveAspectRatio="none"
+              xlink:href="../svg_texture/log_power_prediction_end_texture.png"
+            ></image>
+          </defs>
+        </svg>
+`;
+const logPowerPredictionLoseSVG = `
+<svg width="15" height="15" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <rect width="72" height="72" fill="url(#pattern0_72_70)"/>
+    <defs>
+        <pattern id="pattern0_72_70" patternContentUnits="objectBoundingBox" width="1" height="1">
+          <use xlink:href="#image0_72_70" transform="scale(0.0138889)"/>
+        </pattern>
+    <image id="image0_72_70" width="72" height="72" preserveAspectRatio="none" xlink:href="../svg_texture/log_power_prediction_lose_texture.png"/>
+    </defs>
+</svg>
+
 `;
 const logPowerPredictionVersusSVG = `
 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 17" fill="none" class="live_chatting_prediction_message_icon_vs__brb1n" style="
@@ -4752,9 +4764,10 @@ function createNotificationNode(
         c.channelName
       }</span>
       </a>
-      <div class="logpower-channel-stats">
+      <div class="logpower-channel-stats ${
+        total > 100000 && external > 100000 ? "line-break" : ""
+      }">
         ${totalHtml}
-        <span class="sep">/</span>
       </div>
     `;
 
@@ -4763,15 +4776,20 @@ function createNotificationNode(
         const chips = document.createElement("span");
         chips.className = "logpower-chip-types";
 
+        const sep = document.createElement("span");
+        sep.className = "sep";
+        sep.textContent = "/";
+
+        chips.appendChild(sep);
+
         if (external > 0) {
           const chip = document.createElement("span");
           chip.className = "badge external-gain-chip";
-          chip.title = `기타 획득: ${external.toLocaleString()} (모바일, 다른 PC 또는 누락된 획득량)
-          (현재 총 ${Number(
+          chip.title = `기타 획득: ${external.toLocaleString()} (현재 총 ${Number(
             c.externalCurrentAmount || 0
           ).toLocaleString()} / 기준 ${Number(
             c.externalKnownAmount || 0
-          ).toLocaleString()})`;
+          ).toLocaleString()}) (모바일, 다른 PC, 승부예측 또는 누락된 획득량)`;
           chip.textContent = `기타 ${external.toLocaleString()}`;
           chips.appendChild(chip);
         }
@@ -4801,7 +4819,7 @@ function createNotificationNode(
     const helperText = document.createElement("div");
     helperText.className = "logpower-summary-helper-text";
     helperText.textContent =
-      "*기타 획득의 경우 실제와 차이가 있을 수 있습니다 (모바일, 다른 PC 또는 누락된 획득량)";
+      "*기타 획득의 경우 실제와 차이가 있을 수 있습니다 (모바일, 다른 PC, 승부예측 또는 누락된 획득량)";
 
     wrap.append(header, list, helperText);
     messageDiv.append(wrap);
@@ -4985,10 +5003,10 @@ function createNotificationNode(
       let resultText = "";
       if (item.participation.status === "WON") {
         myResult.classList.add("won");
-        resultText = `🎉 <b>적중! + ${makeLogPowerSVG()} ${item.participation.winningPowers.toLocaleString()}</b>`;
+        resultText = `${partyStartSVG} <b>적중! + </b> ${makeLogPowerSVG()} <span>${item.participation.winningPowers.toLocaleString()}</span>`;
       } else if (item.participation.status === "LOST") {
         myResult.classList.add("lost");
-        resultText = `😢 <b>빗나감</b>`;
+        resultText = `${logPowerPredictionLoseSVG} <b>빗나감</b>`;
       } else {
         resultText = `<b>종료</b>`; // e.g. Cancelled
       }

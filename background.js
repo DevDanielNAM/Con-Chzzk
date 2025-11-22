@@ -244,6 +244,97 @@ async function computeExternalGainsForSummary({
     const lastProcessed = await _loadJsonKey(LOGPOWER_LAST_PROCESSED_AT, {});
     const clientClaims = await _loadJsonKey(LOGPOWER_CLIENT_CLAIMS_KEY, {});
 
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    const openingKey = `logpower_open_${y}-${m}-${d}`;
+
+    // 기준값이 없으면 오늘 오프닝 스냅샷 활용 시도
+    if (Object.keys(knownTotals).length === 0) {
+      // 오늘 오프닝 스냅샷 로드
+      const openingStore = await chrome.storage.local.get(openingKey);
+      const opening = openingStore[openingKey];
+
+      if (opening && opening.map) {
+        // opening.map: channelId -> { amount, name, imageUrl, ... }
+        const externalSummaryFromOpening = [];
+        const openingMap = opening.map;
+
+        for (const [chId, cur] of Object.entries(currentMap)) {
+          const curAmt = Number(cur.amount || 0);
+          const openEntry = openingMap[chId];
+          const openAmt = openEntry ? Number(openEntry.amount || 0) : 0;
+
+          let delta = curAmt - openAmt;
+
+          // client가 수령한 합계(오프닝 기준 이후 to now) 만큼 차감
+          if (!transient) {
+            const sinceTs = Number(opening.ts || 0) || 0;
+            const claimedByThisClient = _sumClaimsForChannelInRange(
+              clientClaims,
+              chId,
+              sinceTs,
+              nowTs
+            );
+            delta -= claimedByThisClient;
+          }
+
+          if (delta > noiseThreshold) {
+            externalSummaryFromOpening.push({
+              channelId: chId,
+              channelName:
+                cur.channelName ||
+                (openingMap[chId] && openingMap[chId].name) ||
+                "",
+              channelImageUrl:
+                cur.channelImageUrl ||
+                (openingMap[chId] && openingMap[chId].imageUrl) ||
+                "",
+              externalGain: Math.round(delta),
+              knownAmount: openAmt,
+              currentAmount: curAmt,
+            });
+          }
+
+          // 기준값/lastProcessed는 항상 최신으로 동기화
+          knownTotals[chId] = {
+            amount: curAmt,
+            ts: nowTs,
+            source: "auto_from_opening",
+          };
+          lastProcessed[chId] = nowTs;
+        }
+
+        // transient 아니면 저장
+        if (!transient) {
+          await Promise.all([
+            _saveJsonKey(LOGPOWER_KNOWN_TOTALS_KEY, knownTotals),
+            _saveJsonKey(LOGPOWER_LAST_PROCESSED_AT, lastProcessed),
+          ]);
+        }
+
+        return externalSummaryFromOpening;
+      }
+
+      // else: opening snapshot 없으면 기존 행동 (init baseline and return [])
+      const initBaseline = {};
+      for (const [chId, cur] of Object.entries(currentMap)) {
+        const curAmt = Number(cur.amount || 0);
+        initBaseline[chId] = { amount: curAmt, ts: nowTs, source: "init" };
+        lastProcessed[chId] = nowTs;
+      }
+
+      if (!transient) {
+        await Promise.all([
+          _saveJsonKey(LOGPOWER_KNOWN_TOTALS_KEY, initBaseline),
+          _saveJsonKey(LOGPOWER_LAST_PROCESSED_AT, lastProcessed),
+        ]);
+      }
+
+      return [];
+    }
+
     const externalSummary = [];
 
     for (const [chId, cur] of Object.entries(currentMap)) {
@@ -297,6 +388,70 @@ async function computeExternalGainsForSummary({
     console.error("computeExternalGainsForSummary failed:", e);
     return [];
   }
+}
+
+// (5) 주간/월간/연말 요약을 위해 일간 '기타 획득' 스냅샷을 집계하는 함수
+async function aggregateExternalGainsFromDailySnapshots(start, end) {
+  const aggMap = new Map();
+  // end 날짜도 포함
+  const loopEnd = new Date(end);
+  let dayCount = 0;
+
+  for (let d = new Date(start); d <= loopEnd; d.setDate(d.getDate() + 1)) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const ymd = `${yyyy}-${mm}-${dd}`;
+
+    const key = `logpower_ext_snap_${ymd}`;
+
+    // _loadJsonKey는 비동기이므로 루프 내에서 await
+    const dailySnap = await _loadJsonKey(key, []);
+    dayCount++;
+
+    // dailySnap이 배열인지 확인 (오류 방지)
+    if (!Array.isArray(dailySnap)) {
+      continue;
+    }
+
+    for (const entry of dailySnap) {
+      if (!entry || !entry.channelId) continue;
+
+      const chId = String(entry.channelId);
+      const gain = Number(entry.externalGain || 0);
+      if (gain <= 0) continue;
+
+      const acc = aggMap.get(chId) || {
+        channelId: chId,
+        channelName: entry.channelName || "",
+        channelImageUrl: entry.channelImageUrl || "",
+        externalGain: 0,
+        knownAmount: 0, // 첫날 값으로 설정
+        currentAmount: 0, // 마지막 날 값으로 설정
+        _firstDay: 0,
+        _lastDay: 0,
+      };
+
+      acc.externalGain += gain;
+
+      // 맵에 없던(새로 생성된) 채널이면, 이번 dayCount를 _firstDay로 설정
+      // (entry.knownAmount가 이 날짜의 시작값이 됨)
+      if (acc._firstDay === 0) {
+        acc.knownAmount = Number(entry.knownAmount || 0);
+        acc._firstDay = dayCount;
+      }
+
+      // 이 채널을 본 마지막 날짜(dayCount)를 항상 갱신
+      // (entry.currentAmount가 이 날짜의 종료값이 됨)
+      acc.currentAmount = Number(entry.currentAmount || 0);
+      acc.channelName = entry.channelName || acc.channelName;
+      acc.channelImageUrl = entry.channelImageUrl || acc.channelImageUrl;
+      acc._lastDay = dayCount;
+
+      aggMap.set(chId, acc);
+    }
+  }
+  return Array.from(aggMap.values());
 }
 
 const CLAIM_TYPE_ALIAS = {
@@ -545,6 +700,75 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     when: atNextLocalTime(0, 5),
     periodInMinutes: 24 * 60,
   });
+
+  try {
+    // 1. 오늘 날짜 구하기 (KST 기준)
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    const openingKey = `logpower_open_${todayStr}`;
+
+    // 기타 획득 스냅샷 키
+    const extSnapKey = `logpower_ext_snap_${todayStr}`;
+
+    // 2. 이미 스냅샷이 있는지 확인 (있으면 건너뜀)
+    const store = await chrome.storage.local.get(openingKey);
+    // 스냅샷이 없을 때 (=최초 설치 또는 오늘 처음 실행된 업데이트)
+    if (!store[openingKey]) {
+      // 3. 현재 보유량 조회
+      const { arr } = await fetchBalancesNow();
+
+      if (arr && arr.length > 0) {
+        // A. 오프닝 스냅샷 저장
+        const currentMap = Object.fromEntries(
+          arr.map((x) => [
+            String(x.channelId),
+            {
+              amount: Number(x.amount) || 0,
+              name: x.channelName || "",
+              imageUrl: x.channelImageUrl || "",
+              verifiedMark: !!x.verifiedMark,
+            },
+          ])
+        );
+
+        const opening = {
+          ts: Date.now(),
+          map: currentMap,
+          late: true,
+        };
+
+        await chrome.storage.local.set({ [openingKey]: opening });
+        console.log(
+          `[Con:Chzzk] Created backup opening snapshot: ${openingKey}`
+        );
+
+        // B. 현재 보유량 전체를 '기타 획득'으로 간주하여 스냅샷 생성
+        //    이렇게 해두면, 이후 runLogPowerSummaries가 실행될 때 이 데이터를 불러와 병합
+        const initialExternalGains = arr
+          .map((x) => ({
+            channelId: String(x.channelId),
+            channelName: x.channelName || "",
+            channelImageUrl: x.channelImageUrl || "",
+            externalGain: Number(x.amount) || 0, // 전체를 획득량으로 잡음
+            knownAmount: 0, // 0부터 시작했다고 가정
+            currentAmount: Number(x.amount) || 0,
+            verifiedMark: !!x.verifiedMark,
+          }))
+          .filter((x) => x.externalGain > 0); // 0인 채널 제외
+
+        await chrome.storage.local.set({ [extSnapKey]: initialExternalGains });
+        console.log(
+          `[Con:Chzzk] Seeded initial external gains to ${extSnapKey}`
+        );
+      }
+    }
+  } catch (err) {
+    console.error("Failed to create opening snapshot onInstalled:", err);
+  }
+
   // '처음'일 때만 baseline 기록
   const { logpowerSummaryLastRun = {} } = await chrome.storage.local.get(
     "logpowerSummaryLastRun"
@@ -554,6 +778,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       [LOGPOWER_CATCHUP_BASELINE_KEY]: Date.now(),
     });
   }
+
   await ensureCatchupSchedule(new Date());
   ensureTodayOpeningSnapshotBG();
   ensureDailyOpeningAlarm();
@@ -1952,6 +2177,46 @@ async function sumClaimsFromLogs(start, end) {
   return per;
 }
 
+/**
+ * 기존 기타 획득 데이터(accumulated)와 새로운 획득 데이터(newItems)를 채널별로 합산
+ */
+function mergeExternalGains(accumulated, newItems) {
+  const map = new Map();
+
+  // 1. 기존 데이터 적재
+  if (Array.isArray(accumulated)) {
+    accumulated.forEach((item) => map.set(String(item.channelId), { ...item }));
+  }
+
+  // 2. 새로운 데이터 병합
+  if (Array.isArray(newItems)) {
+    newItems.forEach((item) => {
+      const chId = String(item.channelId);
+      const existing = map.get(chId);
+
+      if (existing) {
+        // 이미 있으면 획득량 합산
+        existing.externalGain =
+          (Number(existing.externalGain) || 0) +
+          (Number(item.externalGain) || 0);
+        // 현재 보유량은 최신 값으로 갱신
+        existing.currentAmount = item.currentAmount;
+        // channelName, ImageUrl 등은 최신 정보가 있을 경우 갱신
+        if (item.channelName) existing.channelName = item.channelName;
+        if (item.channelImageUrl)
+          existing.channelImageUrl = item.channelImageUrl;
+
+        map.set(chId, existing);
+      } else {
+        // 없으면 신규 추가
+        map.set(chId, { ...item });
+      }
+    });
+  }
+
+  return Array.from(map.values());
+}
+
 // 중복 방지: 같은 기간 키로 1일 1회만
 async function runLogPowerSummaries(
   now = new Date(),
@@ -2001,31 +2266,73 @@ async function runLogPowerSummaries(
       "logpowerIncludeExternal"
     );
 
+    // if (logpowerIncludeExternal) {
+    //   const snapKey = `logpower_ext_snap_${key}`;
+
+    //   if (opts?.transient) {
+    //     // Case 1: 수동 '오늘' 발행 (transient: true)
+    //     // 항상 재계산, 스냅샷 저장 안 함
+    //     external = await computeExternalGainsForSummary({
+    //       onlyActiveChannels: false,
+    //       transient: true,
+    //     });
+    //   } else if (kind === "daily") {
+    //     // Case 2: 'daily' (자동, 수동 캐치업, 수동 재발행)
+
+    //     if (isAlreadyRun && opts.force) {
+    //       // 일간 '재발행' -> 저장된 일간 스냅샷 로드
+    //       external = await _loadJsonKey(snapKey, []);
+    //     } else {
+    //       // 일간 '최초 발행' (자동 00:05 또는 수동 캐치업)
+    //       // '기타 획득'을 계산하고, 베이스라인(knownTotals)을 갱신
+    //       external = await computeExternalGainsForSummary({
+    //         onlyActiveChannels: false,
+    //         transient: false,
+    //       });
+    //       // 일간 스냅샷 저장
+    //       await _saveJsonKey(snapKey, external);
+    //     }
+    //   } else {
+    //     // Case 3: 'weekly', 'monthly', 'year_end' (자동, 수동 캐치업, 수동 재발행)
+    //     // 이 종류들은 '재발행'이든 '최초 발행'이든 *항상* 일간 스냅샷을 집계(re-aggregate)해야 함.
+
+    //     external = await aggregateExternalGainsFromDailySnapshots(start, end);
+
+    //     // 그리고 그 집계 결과를 (최초든 재발행이든) 덮어쓴다.
+    //     // (수동 재발행 시에도 덮어써야, 나중에 추가된 일간 스냅샷이 반영됨)
+    //     await _saveJsonKey(snapKey, external);
+    //   }
+    // }
+
     if (logpowerIncludeExternal) {
       const snapKey = `logpower_ext_snap_${key}`;
 
-      if (opts?.transient) {
-        // Case 1: 수동 '오늘' 발행 (transient: true)
-        // 항상 재계산, 스냅샷 저장 안 함
-        external = await computeExternalGainsForSummary({
-          onlyActiveChannels: false,
-          transient: true,
-        });
-      } else if (isAlreadyRun) {
-        // Case 2: 수동 '재발행' (force: true)
-        // (isAlreadyRun=true, force=true, transient=false)
-        // 스냅샷을 로드
-        external = await _loadJsonKey(snapKey, []);
+      // 1. 이번 실행 시점의 '추가 획득량' 계산 (transient 여부와 관계없이 계산)
+      //    * transient: true를 사용하여 내부 기준점(knownTotals)을 여기서 갱신하지 않도록 함 (병합 후 저장할 것임)
+      //    * 단, 최초 실행 등 기준점이 없는 경우는 compute 내부에서 처리됨
+      const currentDelta = await computeExternalGainsForSummary({
+        onlyActiveChannels: false,
+        transient: !!opts?.transient, // 수동 실행일 때는 기준점을 건드리지 않음
+      });
+
+      // 2. '일간(daily)'이거나 '수동 실행'인 경우, 기존에 저장된 오늘자 스냅샷을 불러와 병합
+      if (kind === "daily" || opts?.transient) {
+        // 기존에 저장된 오늘자 데이터 로드
+        const savedSnap = await _loadJsonKey(snapKey, []);
+
+        // [중요] 기존 데이터 + 신규 발견 데이터 병합
+        external = mergeExternalGains(savedSnap, currentDelta);
+
+        // 수동 실행(transient)이 아닐 경우(자동/캐치업)에는 병합된 데이터를 스토리지에 저장
+        if (!opts?.transient) {
+          await _saveJsonKey(snapKey, external);
+        }
       } else {
-        // Case 3: '최초 발행' (자동 00:05 또는 수동 캐치업)
-        // (isAlreadyRun=false, transient=false)
-        // 재계산 후 스냅샷을 저장
-        external = await computeExternalGainsForSummary({
-          onlyActiveChannels: false,
-          transient: false,
-        });
-        // 스냅샷 저장
-        await _saveJsonKey(snapKey, external);
+        // 3. 주간/월간/연말은 기존 로직 유지 (일간 스냅샷들을 집계)
+        external = await aggregateExternalGainsFromDailySnapshots(start, end);
+        if (!opts?.transient) {
+          await _saveJsonKey(snapKey, external);
+        }
       }
     }
 
@@ -3259,413 +3566,152 @@ async function checkPredictionStatus(
 ) {
   const newPredictionStatus = { ...prevPredictionStatus };
   const notifications = [];
-  const predictionPatches = []; //
+  const predictionPatches = [];
   const now = Date.now();
 
-  // 알림 켠 채널만 폴링
+  // 한 번에 처리할 채널 수
+  const CONCURRENCY = 5;
+
+  // 알림 켠 채널만 필터링
   const channelsToCheck = followingList.filter((item) =>
     notificationEnabledChannels.has(item.channel.channelId)
   );
 
-  for (const item of channelsToCheck) {
-    const { channel } = item;
-    const channelId = channel.channelId;
-    const prevState = prevPredictionStatus[channelId] || {
-      status: null,
-      predictionId: null,
-      lastNotifiedStatus: null,
-    };
+  // 배치 단위로 끊어서 병렬 처리
+  for (let i = 0; i < channelsToCheck.length; i += CONCURRENCY) {
+    const batch = channelsToCheck.slice(i, i + CONCURRENCY);
 
-    try {
-      // --- API 1: 현재 활성 예측 정보 가져오기 ---
-      const summary = await fetchPredictionSummary(channelId); // May return null (404)
-      const summaryPredictionId = summary?.predictionId || null;
-      const summaryStatus = summary?.status
-        ? summary.status.toUpperCase()
-        : null; // "ACTIVE", "EXPIRED", or null
+    // 배치 내의 채널들을 동시에 검사 (Promise.all)
+    const results = await Promise.all(
+      batch.map(async (item) => {
+        const { channel } = item;
+        const channelId = channel.channelId;
 
-      let details = null;
-      let detailsPredictionId = null;
-      let detailsStatus = null;
+        // 개별 채널에 대한 결과 저장소
+        const channelResult = {
+          channelId,
+          newStatusEntry: null, // 갱신될 상태 객체
+          newNotifications: [], // 생성된 알림들
+          newPatches: [], // 생성된 패치들
+        };
 
-      // [Helper] PREDICTION_START 아이템을 갱신하기 위한 패치 생성
-      const addPatch = (details) => {
-        if (!details || !details.predictionId) return;
-        const originalId = `prediction-start-${channelId}-${details.predictionId}`;
-        predictionPatches.push({
-          id: originalId,
-          data: {
-            status: details.status,
-            remainingDuration: details.remainingDuration,
-            optionList: details.optionList,
-            participation: details.participation,
-            winningOptionNo: details.winningOptionNo,
-            expireAt: details.expireAt,
-            fetchedAt: details.fetchedAt,
-          },
-        });
-      };
+        const prevState = prevPredictionStatus[channelId] || {
+          status: null,
+          predictionId: null,
+          lastNotifiedStatus: null,
+        };
 
-      if (summaryStatus === "ACTIVE") {
-        // --- Case A: API 1 SAYS "ACTIVE" ---
+        try {
+          // --- API 1: 현재 활성 예측 정보 가져오기 ---
+          const summary = await fetchPredictionSummary(channelId);
+          const summaryPredictionId = summary?.predictionId || null;
+          const summaryStatus = summary?.status
+            ? summary.status.toUpperCase()
+            : null;
 
-        // API 1(summary)이 ACTIVE라고 해도,
-        // 이미 EXPIRED 또는 COMPLETED로 알고 있다면
-        // API 1의 지연(lag)으로 간주하고 API 2(details) 호출을 건너뜀
-        if (
-          prevState.predictionId === summaryPredictionId &&
-          (prevState.lastNotifiedStatus === "EXPIRED" ||
-            prevState.lastNotifiedStatus === "COMPLETED")
-        ) {
-          // 상태를 보존하고 이번 채널의 확인을 건너뜀
-          newPredictionStatus[channelId] = {
-            ...prevState,
-            lastCheckedAt: now,
-          };
-          continue;
-        }
+          let details = null;
+          let detailsPredictionId = null;
+          let detailsStatus = null;
 
-        details = await fetchPredictionDetails(channelId, summaryPredictionId);
-        detailsPredictionId = details?.predictionId;
-        detailsStatus = (details?.status || "UNKNOWN").toUpperCase();
-
-        if (
-          details &&
-          detailsStatus === "ACTIVE" &&
-          detailsPredictionId !== prevState.predictionId
-        ) {
-          // --- A-1: New Prediction (START) ---
-          const notificationObject = createPredictionStartObject(
-            channel,
-            details
-          );
-          if (
-            !notificationHistory.some((n) => n.id === notificationObject.id) &&
-            !dismissedSet.has(notificationObject.id) &&
-            !isPredictionKeepPaused
-          ) {
-            notifications.push(notificationObject);
-            if (!isPaused && !isPredictionPaused) {
-              chrome.notifications.create(
-                notificationObject.id,
-                createPredictionStartNotification(channel, details)
-              );
-              playSoundFor("prediction");
-            }
-            newPredictionStatus[channelId] = {
-              predictionId: details.predictionId,
-              status: details.status,
-              lastNotifiedStatus: "ACTIVE",
-              lastCheckedAt: now,
-              details,
-            };
-            addPatch(details);
-          }
-        } else if (
-          details &&
-          detailsStatus === "ACTIVE" &&
-          detailsPredictionId === prevState.predictionId
-        ) {
-          // --- A-2: Ongoing Prediction (UPDATE) ---
-          newPredictionStatus[channelId] = {
-            ...prevState,
-            status: details.status,
-            lastCheckedAt: now,
-            details,
-          };
-          addPatch(details); //
-        } else if (
-          details &&
-          detailsStatus === "COMPLETED" &&
-          detailsPredictionId === prevState.predictionId &&
-          prevState.lastNotifiedStatus !== "COMPLETED"
-        ) {
-          // --- A-3: Prediction just COMPLETED (END) ---
-          const notificationObject = createPredictionEndObject(
-            channel,
-            details
-          );
-          if (
-            !notificationHistory.some((n) => n.id === notificationObject.id) &&
-            !dismissedSet.has(notificationObject.id) &&
-            !isPredictionKeepPaused
-          ) {
-            notifications.push(notificationObject);
-            if (!isPaused && !isPredictionPaused) {
-              chrome.notifications.create(
-                notificationObject.id,
-                createPredictionEndNotification(channel, details)
-              );
-              playSoundFor("prediction");
-            }
-            newPredictionStatus[channelId] = {
-              ...prevState,
-              status: details.status,
-              lastNotifiedStatus: "COMPLETED",
-              lastCheckedAt: now,
-              details,
-            };
-            addPatch(details);
-          }
-        } else if (
-          details &&
-          detailsStatus === "EXPIRED" &&
-          detailsPredictionId === prevState.predictionId &&
-          prevState.lastNotifiedStatus === "ACTIVE"
-        ) {
-          // --- A-4: Prediction just EXPIRED (Wait) ---
-          newPredictionStatus[channelId] = {
-            ...prevState,
-            status: details.status,
-            lastNotifiedStatus: "EXPIRED",
-            lastCheckedAt: now,
-            details,
-          };
-          addPatch(details);
-        }
-      } else if (summaryStatus === "EXPIRED") {
-        // --- Case B: API 1 SAYS "EXPIRED" (새로 발견한 EXPIRED) ---
-
-        // 이미 EXPIRED 또는 COMPLETED로 처리된 상태라면,
-        // API 2(details)를 다시 호출할 필요 없이 COMPLETED가 될 때까지 대기
-        if (
-          (prevState.predictionId === summaryPredictionId &&
-            prevState.lastNotifiedStatus === "EXPIRED") ||
-          prevState.lastNotifiedStatus === "COMPLETED"
-        ) {
-          // 상태를 보존하고 이번 채널의 확인을 건너뜀
-          newPredictionStatus[channelId] = {
-            ...prevState,
-            lastCheckedAt: now,
-          };
-          continue;
-        }
-
-        details = await fetchPredictionDetails(channelId, summaryPredictionId);
-        detailsPredictionId = details?.predictionId;
-        detailsStatus = (details?.status || "UNKNOWN").toUpperCase();
-
-        if (
-          details &&
-          detailsStatus === "COMPLETED" &&
-          prevState.lastNotifiedStatus !== "COMPLETED"
-        ) {
-          // --- B-1: Discovered as EXPIRED, but API 2 says already COMPLETED ---
-          const notificationObject = createPredictionEndObject(
-            channel,
-            details
-          );
-          if (
-            !notificationHistory.some((n) => n.id === notificationObject.id) &&
-            !dismissedSet.has(notificationObject.id) &&
-            !isPredictionKeepPaused
-          ) {
-            notifications.push(notificationObject);
-            if (!isPaused && !isPredictionPaused) {
-              chrome.notifications.create(
-                notificationObject.id,
-                createPredictionEndNotification(channel, details)
-              );
-              playSoundFor("prediction");
-            }
-            newPredictionStatus[channelId] = {
-              predictionId: details.predictionId,
-              status: details.status,
-              lastNotifiedStatus: "COMPLETED",
-              lastCheckedAt: now,
-              details,
-            };
-            addPatch(details);
-          }
-        } else if (
-          details &&
-          detailsStatus === "EXPIRED" &&
-          prevState.lastNotifiedStatus !== "COMPLETED" &&
-          prevState.lastNotifiedStatus !== "EXPIRED"
-        ) {
-          // --- B-2: Discovered as EXPIRED (from ACTIVE or NEW). ---
-
-          // Check if this is the first time seeing this *predictionId*.
-          const isNewPredictionId =
-            prevState.predictionId !== details.predictionId;
-
-          // If it's a new ID, we missed the "ACTIVE" phase. Backfill the START notification.
-          if (isNewPredictionId) {
-            const notificationObject = createPredictionStartObject(
-              channel,
-              details
-            );
-            if (
-              !notificationHistory.some(
-                (n) => n.id === notificationObject.id
-              ) &&
-              !dismissedSet.has(notificationObject.id) &&
-              !isPredictionKeepPaused
-            ) {
-              notifications.push(notificationObject);
-              if (!isPaused && !isPredictionPaused) {
-                chrome.notifications.create(
-                  notificationObject.id,
-                  createPredictionStartNotification(channel, details)
-                );
-                playSoundFor("prediction");
-              }
-              // Now, update the internal state to "EXPIRED" (waiting for COMPLETED)
-              newPredictionStatus[channelId] = {
-                predictionId: details.predictionId,
+          // [Helper] 패치 생성 함수
+          const createPatch = (details) => {
+            if (!details || !details.predictionId) return null;
+            const originalId = `prediction-start-${channelId}-${details.predictionId}`;
+            return {
+              id: originalId,
+              data: {
                 status: details.status,
-                lastNotifiedStatus: "EXPIRED", // We are now waiting for COMPLETED
-                lastCheckedAt: now,
-                details,
-              };
-              addPatch(details);
-            } else {
-              newPredictionStatus[channelId] = {
-                predictionId: details.predictionId,
-                status: details.status,
-                lastNotifiedStatus: "EXPIRED", // We are now waiting for COMPLETED
-                lastCheckedAt: now,
-                details,
-              };
-              addPatch(details);
-            }
-          } else {
-            // ID가 동일한 경우 (ACTIVE -> EXPIRED로 정상 전환)
-            // 상태를 "EXPIRED"로 갱신하여 "COMPLETED"를 기다림
-            newPredictionStatus[channelId] = {
-              ...prevState, // prevState.lastNotifiedStatus는 "ACTIVE"
-              status: details.status,
-              lastNotifiedStatus: "EXPIRED", // 상태를 EXPIRED로 갱신
-              lastCheckedAt: now,
-              details,
+                remainingDuration: details.remainingDuration,
+                optionList: details.optionList,
+                participation: details.participation,
+                winningOptionNo: details.winningOptionNo,
+                expireAt: details.expireAt,
+                fetchedAt: details.fetchedAt,
+              },
             };
-            addPatch(details);
-          }
-        }
-      } else {
-        // --- Case C: API 1 SAYS "NOT ACTIVE" (null / 404) ---
-        // (우리가 ACTIVE 또는 EXPIRED로 추적 중이던 것이 사라짐)
-        if (
-          prevState.predictionId &&
-          (prevState.lastNotifiedStatus === "ACTIVE" ||
-            prevState.lastNotifiedStatus === "EXPIRED")
-        ) {
-          // --- C-1: Check final status ---
-          details = await fetchPredictionDetails(
-            channelId,
-            prevState.predictionId
-          );
-          detailsStatus = (details?.status || "UNKNOWN").toUpperCase();
+          };
 
+          // 이미 종료된 상태(COMPLETED/CANCELLED)로 인지하고 있고, ID가 같다면 API 2 호출 생략
+          const isFinishedState = ["COMPLETED", "CANCELLED"].includes(
+            prevState.lastNotifiedStatus
+          );
           if (
-            details &&
-            detailsStatus === "COMPLETED" &&
-            prevState.lastNotifiedStatus !== "COMPLETED"
+            prevState.predictionId === summaryPredictionId &&
+            isFinishedState
           ) {
-            // --- C-1a: It's COMPLETED. Notify! ---
-            const notificationObject = createPredictionEndObject(
-              channel,
-              details
-            );
-            if (
-              !notificationHistory.some(
-                (n) => n.id === notificationObject.id
-              ) &&
-              !dismissedSet.has(notificationObject.id) &&
-              !isPredictionKeepPaused
-            ) {
-              notifications.push(notificationObject);
-              if (!isPaused && !isPredictionPaused) {
-                chrome.notifications.create(
-                  notificationObject.id,
-                  createPredictionEndNotification(channel, details)
-                );
-                playSoundFor("prediction");
-              }
-            }
-            newPredictionStatus[channelId] = {
-              ...prevState,
-              status: details.status,
-              lastNotifiedStatus: "COMPLETED",
-              lastCheckedAt: now,
-              details,
-            };
-            addPatch(details); //
-          } else if (
-            details &&
-            detailsStatus === "EXPIRED" &&
-            prevState.lastNotifiedStatus === "ACTIVE"
-          ) {
-            // --- C-1b: Was ACTIVE, now EXPIRED. Update state to wait. ---
-            newPredictionStatus[channelId] = {
-              ...prevState,
-              status: details.status,
-              lastNotifiedStatus: "EXPIRED",
-              lastCheckedAt: now,
-              details,
-            };
-            addPatch(details); //
-          } else if (
-            !details ||
-            (detailsStatus !== "EXPIRED" && detailsStatus !== "COMPLETED")
-          ) {
-            // --- C-1c: Polling API 2 failed. Clear state. ---
-            newPredictionStatus[channelId] = {
-              predictionId: null,
-              status: null,
-              lastNotifiedStatus: null,
-              lastCheckedAt: now,
-              details: null,
-            };
+            channelResult.newStatusEntry = { ...prevState, lastCheckedAt: now };
+            return channelResult; // 변경 없음, 조기 리턴
           }
-        } else {
-          // --- C-2: No active prediction, and none were tracked. ---
-          if (prevState.predictionId) {
-            // COMPLETED 또는 EXPIRED가 아니었던 경우에만 상태를 지움
-            // COMPLETED였다면, API가 404를 반환하는 것이 정상이므로
-            // 최종 'details' 상태를 보존
-            if (
-              prevState.lastNotifiedStatus !== "COMPLETED" &&
-              prevState.lastNotifiedStatus !== "EXPIRED"
-            ) {
-              newPredictionStatus[channelId] = {
-                predictionId: null,
-                status: null,
-                lastNotifiedStatus: null,
-                lastCheckedAt: now,
-                details: null,
-              };
-            } else {
-              // 이미 COMPLETED면, 최종 'details'를 보존
-              newPredictionStatus[channelId] = {
-                ...prevState,
-                lastCheckedAt: now,
-              };
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn(`[${channelId}] Error checking prediction status:`, e);
-      // --- Case D: API 1 (summary)이 404를 반환 (catch 블록) ---
-      if (e.message && e.message.includes("404")) {
-        if (
-          prevState.predictionId &&
-          (prevState.lastNotifiedStatus === "ACTIVE" ||
-            prevState.lastNotifiedStatus === "EXPIRED")
-        ) {
-          try {
-            // API 1이 404여도, API 2는 이전 ID로 조회가 가능해야 함
-            const details = await fetchPredictionDetails(
+
+          // --- 상태 판단 로직 ---
+          if (summaryStatus === "ACTIVE" || summaryStatus === "EXPIRED") {
+            // API 2: 상세 정보 호출
+            details = await fetchPredictionDetails(
               channelId,
-              prevState.predictionId
+              summaryPredictionId
             );
-            const detailsStatus = (details?.status || "UNKNOWN").toUpperCase();
+            detailsPredictionId = details?.predictionId;
+            detailsStatus = (details?.status || "UNKNOWN").toUpperCase();
+
             if (
               details &&
-              detailsStatus === "COMPLETED" &&
-              prevState.lastNotifiedStatus !== "COMPLETED"
+              detailsStatus === "ACTIVE" &&
+              detailsPredictionId !== prevState.predictionId
             ) {
+              // [START] 새로운 예측 시작
+              const notificationObject = createPredictionStartObject(
+                channel,
+                details
+              );
+              if (
+                !notificationHistory.some(
+                  (n) => n.id === notificationObject.id
+                ) &&
+                !dismissedSet.has(notificationObject.id) &&
+                !isPredictionKeepPaused
+              ) {
+                channelResult.newNotifications.push(notificationObject);
+                if (!isPaused && !isPredictionPaused) {
+                  chrome.notifications.create(
+                    notificationObject.id,
+                    createPredictionStartNotification(channel, details)
+                  );
+                  playSoundFor("prediction");
+                }
+                channelResult.newStatusEntry = {
+                  predictionId: details.predictionId,
+                  status: details.status,
+                  lastNotifiedStatus: "ACTIVE",
+                  lastCheckedAt: now,
+                  details,
+                };
+                const p = createPatch(details);
+                if (p) channelResult.newPatches.push(p);
+              }
+            } else if (
+              details &&
+              detailsStatus === "ACTIVE" &&
+              detailsPredictionId === prevState.predictionId
+            ) {
+              // [UPDATE] 진행 중 업데이트
+              channelResult.newStatusEntry = {
+                ...prevState,
+                status: details.status,
+                lastCheckedAt: now,
+                details,
+              };
+              const p = createPatch(details);
+              if (p) channelResult.newPatches.push(p);
+            } else if (
+              details &&
+              (detailsStatus === "COMPLETED" ||
+                detailsStatus === "CANCELLED") && // 취소됨 상태 추가
+              detailsPredictionId === prevState.predictionId &&
+              prevState.lastNotifiedStatus !== "COMPLETED" &&
+              prevState.lastNotifiedStatus !== "CANCELLED"
+            ) {
+              // [END] 종료 또는 취소됨
+              // 취소된 경우 타이머 등 UI 처리를 위해 END 객체 생성 (혹은 별도 로직)
               const notificationObject = createPredictionEndObject(
                 channel,
                 details
@@ -3677,8 +3723,9 @@ async function checkPredictionStatus(
                 !dismissedSet.has(notificationObject.id) &&
                 !isPredictionKeepPaused
               ) {
-                notifications.push(notificationObject);
+                channelResult.newNotifications.push(notificationObject);
                 if (!isPaused && !isPredictionPaused) {
+                  // 취소됨일 경우 메시지를 다르게 줄 수 있음 (여기서는 END 노티 사용)
                   chrome.notifications.create(
                     notificationObject.id,
                     createPredictionEndNotification(channel, details)
@@ -3686,73 +3733,203 @@ async function checkPredictionStatus(
                   playSoundFor("prediction");
                 }
               }
-              newPredictionStatus[channelId] = {
+              channelResult.newStatusEntry = {
                 ...prevState,
                 status: details.status,
-                lastNotifiedStatus: "COMPLETED",
+                lastNotifiedStatus: detailsStatus, // COMPLETED or CANCELLED
                 lastCheckedAt: now,
                 details,
               };
-              addPatch(details); //
+              const p = createPatch(details);
+              if (p) channelResult.newPatches.push(p);
             } else if (
               details &&
               detailsStatus === "EXPIRED" &&
+              detailsPredictionId === prevState.predictionId &&
               prevState.lastNotifiedStatus === "ACTIVE"
             ) {
-              // 404 후 EXPIRED 상태 확인. 알림 없이 상태만 EXPIRED로 갱신.
-              newPredictionStatus[channelId] = {
+              // [EXPIRED] 마감 (집계 중) - 알림 없이 상태만 갱신
+              channelResult.newStatusEntry = {
                 ...prevState,
                 status: details.status,
                 lastNotifiedStatus: "EXPIRED",
                 lastCheckedAt: now,
                 details,
               };
-              addPatch(details); //
+              const p = createPatch(details);
+              if (p) channelResult.newPatches.push(p);
+            } else if (
+              // 요약 API에선 EXPIRED 였는데 상세 API로 보니 새로운 ID인 경우 (놓친 예측)
+              details &&
+              detailsStatus === "EXPIRED" &&
+              detailsPredictionId !== prevState.predictionId
+            ) {
+              // 중간 과정을 놓쳤으므로 START 알림을 생성하고 상태를 EXPIRED로 둠
+              const notificationObject = createPredictionStartObject(
+                channel,
+                details
+              );
+              if (
+                !notificationHistory.some(
+                  (n) => n.id === notificationObject.id
+                ) &&
+                !dismissedSet.has(notificationObject.id) &&
+                !isPredictionKeepPaused
+              ) {
+                channelResult.newNotifications.push(notificationObject);
+                // (옵션) 알림은 띄우지 않고 히스토리에만 넣거나, 소리 없이 띄움
+                channelResult.newStatusEntry = {
+                  predictionId: details.predictionId,
+                  status: details.status,
+                  lastNotifiedStatus: "EXPIRED",
+                  lastCheckedAt: now,
+                  details,
+                };
+                const p = createPatch(details);
+                if (p) channelResult.newPatches.push(p);
+              }
             }
-          } catch (e2) {
-            console.warn(
-              `[${channelId}] Failed to fetch details for ended prediction:`,
-              e2
-            );
-            // 복구 실패. 'CANCELLED' 상태로 확정
-            newPredictionStatus[channelId] = {
-              ...prevState, // predictionId를 유지하여 중복 알림 방지
-              status: "CANCELLED",
-              lastNotifiedStatus: "CANCELLED",
-              lastCheckedAt: now,
-              details: { ...(prevState.details || {}), status: "CANCELLED" },
-            };
-            // 팝업 UI도 'CANCELLED'로 즉시 패치하도록 요청
-            addPatch({
-              ...(prevState.details || {}),
-              predictionId: prevState.predictionId, // ID 보존
-              status: "CANCELLED",
-            });
-          }
-        } else {
-          // 404고, 추적 중인 것도 없었음.
-          // COMPLETED 또는 EXPIRED가 아니었던 경우에만 상태를 지움
-          if (
-            prevState.lastNotifiedStatus !== "COMPLETED" &&
-            prevState.lastNotifiedStatus !== "EXPIRED"
-          ) {
-            newPredictionStatus[channelId] = {
-              predictionId: null,
-              status: null,
-              lastNotifiedStatus: null,
-              lastCheckedAt: now,
-              details: null,
-            };
           } else {
-            // 이미 COMPLETED면, 404는 정상이므로 최종 'details'를 보존
-            newPredictionStatus[channelId] = {
-              ...prevState,
-              lastCheckedAt: now,
-            };
+            // --- Case C: API 1 SAYS "NOT ACTIVE" (null / 404) ---
+            // 이전에 추적 중이던 예측이 사라진 경우 (API 1에서 내려감)
+            if (
+              prevState.predictionId &&
+              (prevState.lastNotifiedStatus === "ACTIVE" ||
+                prevState.lastNotifiedStatus === "EXPIRED")
+            ) {
+              // API 2로 최종 상태 확인 시도
+              details = await fetchPredictionDetails(
+                channelId,
+                prevState.predictionId
+              );
+              detailsStatus = (details?.status || "UNKNOWN").toUpperCase();
+
+              if (
+                details &&
+                (detailsStatus === "COMPLETED" || detailsStatus === "CANCELLED")
+              ) {
+                // 뒤늦게 종료/취소 확인 -> 알림 발송
+                const notificationObject = createPredictionEndObject(
+                  channel,
+                  details
+                );
+                if (
+                  !notificationHistory.some(
+                    (n) => n.id === notificationObject.id
+                  ) &&
+                  !dismissedSet.has(notificationObject.id) &&
+                  !isPredictionKeepPaused
+                ) {
+                  channelResult.newNotifications.push(notificationObject);
+                  if (!isPaused && !isPredictionPaused) {
+                    chrome.notifications.create(
+                      notificationObject.id,
+                      createPredictionEndNotification(channel, details)
+                    );
+                    playSoundFor("prediction");
+                  }
+                }
+                channelResult.newStatusEntry = {
+                  ...prevState,
+                  status: details.status,
+                  lastNotifiedStatus: detailsStatus,
+                  lastCheckedAt: now,
+                  details,
+                };
+                const p = createPatch(details);
+                if (p) channelResult.newPatches.push(p);
+              } else {
+                // 정보를 찾을 수 없으면 초기화
+                channelResult.newStatusEntry = {
+                  predictionId: null,
+                  status: null,
+                  lastNotifiedStatus: null,
+                  lastCheckedAt: now,
+                  details: null,
+                };
+              }
+            } else {
+              // 추적 중인 것도 없었고 API 1도 없으면 상태 유지 혹은 초기화
+              if (
+                prevState.predictionId &&
+                prevState.lastNotifiedStatus !== "COMPLETED" &&
+                prevState.lastNotifiedStatus !== "CANCELLED"
+              ) {
+                channelResult.newStatusEntry = {
+                  predictionId: null,
+                  status: null,
+                  lastNotifiedStatus: null,
+                  lastCheckedAt: now,
+                  details: null,
+                };
+              }
+            }
+          }
+        } catch (e) {
+          console.warn(`[${channelId}] Error checking prediction status:`, e);
+
+          // 404 에러 처리
+          if (e.message && e.message.includes("404")) {
+            // API 1은 200(ACTIVE/EXPIRED)인데 API 2가 404인 경우,
+            // 이는 데이터 불일치이거나 삭제된 것이 확실함.
+
+            // 하지만 "일시적 서버 오류"일 가능성을 대비해
+            // 즉시 'CANCELLED'로 바꾸기보다는,
+            // 기존 상태가 있다면 유지하되 'lastCheckedAt'만 갱신하여
+            // 다음 주기(1분 뒤)에 다시 확인하도록 유도하는 것이 더 안전할 수 있음.
+
+            if (prevState.predictionId) {
+              // 이번 턴에는 에러 로그만 남기고 상태를 유지 (알림 발송 안 함)
+              // 만약 정말 취소된 것이라면, 다음번 API 1 호출(fetchPredictionSummary)에서도
+              // 404가 뜨거나 null이 올 것이므로 그때 처리됨.
+
+              channelResult.newStatusEntry = {
+                ...prevState,
+                lastCheckedAt: now,
+                // 상태를 강제로 바꾸지 않고 유지함 -> 다음 턴에 다시 시도
+              };
+
+              // "즉시 취소 처리"
+              /*
+                 const cancelledDetails = { 
+                    ...(prevState.details || {}), 
+                    status: "CANCELLED", 
+                    predictionId: prevState.predictionId 
+                 };
+                 channelResult.newStatusEntry = {
+                    ...prevState,
+                    status: "CANCELLED",
+                    lastNotifiedStatus: "CANCELLED",
+                    lastCheckedAt: now,
+                    details: cancelledDetails
+                 };
+                 const p = createPatch(cancelledDetails);
+                 if(p) channelResult.newPatches.push(p);
+                 */
+            }
           }
         }
+
+        return channelResult;
+      })
+    );
+
+    // 배치 처리 결과를 전체 결과에 병합
+    results.forEach((res) => {
+      if (!res) return;
+      // 1. 상태 갱신
+      if (res.newStatusEntry) {
+        newPredictionStatus[res.channelId] = res.newStatusEntry;
       }
-    }
+      // 2. 알림 추가
+      if (res.newNotifications.length > 0) {
+        notifications.push(...res.newNotifications);
+      }
+      // 3. 패치 추가
+      if (res.newPatches.length > 0) {
+        predictionPatches.push(...res.newPatches);
+      }
+    });
   }
 
   return { newStatus: newPredictionStatus, notifications, predictionPatches };
@@ -6093,7 +6270,12 @@ function createVideoObject(video) {
   };
 }
 
-async function checkBanners(prevSeenBanners = [], isPaused, isBannerPaused) {
+async function checkBanners(
+  prevSeenBanners = [],
+  isPaused,
+  isBannerPaused,
+  isBannerKeepPaused
+) {
   const notifications = [];
   try {
     const response = await fetchWithRetry(CHZZK_BANNER_API_URL, {
@@ -6113,10 +6295,12 @@ async function checkBanners(prevSeenBanners = [], isPaused, isBannerPaused) {
         const bannerKey = `${banner.title}-${banner.imageUrl}-${banner.scheduledDate}`;
 
         if (!seenSet.has(bannerKey)) {
-          notifications.push(createBannerObject(banner));
-          if (!isPaused && !isBannerPaused) {
-            createBannerNotification(banner);
-            playSoundFor("banner");
+          if (!isBannerKeepPaused) {
+            notifications.push(createBannerObject(banner));
+            if (!isPaused && !isBannerPaused) {
+              createBannerNotification(banner);
+              playSoundFor("banner");
+            }
           }
         }
       }
@@ -6247,12 +6431,12 @@ function createPredictionEndNotification(channel, predictionDetails) {
       (o) => o.optionNo === participation.selectedOptionNo
     );
     const myOptionText = myOption ? myOption.optionText : "선택";
-    message += `[나의 선택: ${myOptionText} (${participation.bettingPowers.toLocaleString()}P)]\n`;
+    message += `[나의 선택: ${myOptionText} (${participation.bettingPowers.toLocaleString()}파워)]\n`;
 
     if (participation.status === "WON") {
-      message += `🎉 적중! +${participation.winningPowers.toLocaleString()}P 획득!`;
+      message += `🎉 적중! +${participation.winningPowers.toLocaleString()}파워 획득!`;
     } else if (participation.status === "LOST") {
-      message += `😢 빗나감...`;
+      message += `😱 빗나감...`;
     } else {
       const winningOption = optionList.find(
         (o) => o.optionNo === winningOptionNo

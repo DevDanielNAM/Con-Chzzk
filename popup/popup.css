@@ -2244,6 +2244,7 @@ body.folded-view #toggle-fold-btn .icon-unfold {
 .logpower-summary-meta div {
   width: 100%;
   display: flex;
+  align-items: center;
   justify-content: flex-start;
   gap: 5px;
   margin-left: 25%;
@@ -2303,6 +2304,10 @@ body.folded-view #toggle-fold-btn .icon-unfold {
   gap: 5px;
   font-variant-numeric: tabular-nums;
 }
+.logpower-channel-stats .line-break {
+  flex-direction: column;
+  align-items: flex-start;
+}
 .logpower-summary-meta div span:first-child,
 .logpower-summary-item .stat-total {
   color: rgb(122, 78, 19);
@@ -2311,7 +2316,12 @@ body.folded-view #toggle-fold-btn .icon-unfold {
   border-style: solid;
   border-color: rgba(133, 68, 24, 0.5);
   border-radius: 3px;
-  padding: 0 2px;
+  padding: 1px 2px;
+}
+.logpower-summary-item .stat-total {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 .logpower-summary-item .stat-total svg {
   width: 14px;
@@ -2326,6 +2336,7 @@ body.folded-view #toggle-fold-btn .icon-unfold {
 }
 .logpower-summary-item .logpower-chip-types {
   display: flex;
+  align-items: center;
   gap: 4px;
 }
 .logpower-summary-item .logpower-chip-types .badge {
@@ -2340,7 +2351,7 @@ body.folded-view #toggle-fold-btn .icon-unfold {
   font-size: 10px;
 }
 .logpower-summary-helper-text {
-  font-size: 11px;
+  font-size: 10px;
   color: red;
   margin-top: 4px;
 }
@@ -2588,6 +2599,11 @@ body.folded-view #toggle-fold-btn .icon-unfold {
 }
 .prediction-wrapper.end .prediction-my-result.lost .prediction-result-status {
   color: #c62828;
+}
+.prediction-result-status {
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 #video-thumbnail-toggle-btn.active svg {
