@@ -340,6 +340,38 @@ const logPowerPredictionEndSVG = `
           </defs>
         </svg>
 `;
+const logPowerPredictionCancelledSVG = `
+<svg
+  width="15"
+  height="15"
+  viewBox="0 0 800 800"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+>
+  <rect width="781" height="770" fill="url(#pattern0_38_64)" />
+  <defs>
+    <pattern
+      id="pattern0_38_64"
+      patternContentUnits="objectBoundingBox"
+      width="1"
+      height="1"
+    >
+      <use
+        xlink:href="#image0_38_64"
+        transform="matrix(0.000918481 0 0 0.000931471 -0.28715 0.00649351)"
+      />
+    </pattern>
+    <image
+      id="image0_38_64"
+      width="3072"
+      height="2048"
+      preserveAspectRatio="none"
+      xlink:href="../svg_texture/log_power_prediction_cancelled_texture.png"
+    ></image>
+  </defs>
+</svg>
+`;
 const logPowerPredictionLoseSVG = `
 <svg width="15" height="15" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <rect width="72" height="72" fill="url(#pattern0_72_70)"/>
@@ -4001,8 +4033,13 @@ function createNotificationNode(
     contentType = logPowerPredictionStartSVG; // "🎲";
     contentTitle = item.channelName + "님이 승부예측을 시작했어요";
   } else if (item.type === "PREDICTION_END") {
-    contentType = logPowerPredictionEndSVG; // "🏁";
-    contentTitle = item.channelName + "님의 승부예측이 종료됐어요";
+    if (item.status === "CANCELLED") {
+      contentType = logPowerPredictionCancelledSVG; // "❌";
+      contentTitle = item.channelName + "님의 승부예측이 취소됐어요";
+    } else {
+      contentType = logPowerPredictionEndSVG; // "🏁";
+      contentTitle = item.channelName + "님의 승부예측이 종료됐어요";
+    }
   } else if (item.type === "LOUNGE") {
     contentType = loungeSVG; // "🧀";
     contentTitle = item.channelName + "님이 새 라운지 글을 작성했어요";
@@ -4795,6 +4832,28 @@ function createNotificationNode(
       const total = Number(c.total || 0);
       const external = Number(c.externalGain || 0);
 
+      const types = Array.isArray(c.typeBreakdown) ? c.typeBreakdown : [];
+
+      const countFive =
+        types.find((t) => (t.claimTypeNorm || "").includes("5분"))?.count || 0;
+      const countHour =
+        types.find((t) => (t.claimTypeNorm || "").includes("1시간"))?.count ||
+        0;
+
+      const needsLineBreak =
+        (total > 10000 &&
+          external > 1000 &&
+          countFive > 1000 &&
+          countHour > 100) ||
+        (total > 10000 &&
+          external > 1000 &&
+          countFive > 1000 &&
+          countHour > 100) ||
+        (total > 100000 &&
+          external > 1000 &&
+          countFive > 100 &&
+          countHour > 100);
+
       let totalHtml = "";
       totalHtml = `
           <span class="stat stat-total" title="총 ${total.toLocaleString()}">
@@ -4814,14 +4873,11 @@ function createNotificationNode(
         c.channelName
       }</span>
       </a>
-      <div class="logpower-channel-stats ${
-        total > 100000 && external > 100000 ? "line-break" : ""
-      }">
+      <div class="logpower-channel-stats ${needsLineBreak ? "line-break" : ""}">
         ${totalHtml}
       </div>
     `;
 
-      const types = Array.isArray(c.typeBreakdown) ? c.typeBreakdown : [];
       if (types.length > 0 || external > 0) {
         const chips = document.createElement("span");
         chips.className = "logpower-chip-types";

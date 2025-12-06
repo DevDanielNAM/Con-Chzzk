@@ -6450,7 +6450,19 @@ function createPredictionEndNotification(channel, predictionDetails) {
     participation,
     winningOptionNo,
     optionList = [],
+    status,
   } = predictionDetails;
+
+  if (status === "CANCELLED") {
+    return {
+      type: "basic",
+      iconUrl: channelImageUrl || "icon_128.png",
+      title: `❌ ${channelName}님의 승부예측이 취소됐어요`,
+      message: `${predictionTitle}\n승부예측이 취소되어 종료되었습니다.`,
+      requireInteraction: false,
+      silent: true,
+    };
+  }
 
   let message = `${predictionTitle}\n`;
 
