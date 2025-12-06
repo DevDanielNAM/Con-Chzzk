@@ -1239,6 +1239,10 @@ function initializeAllToggles() {
     },
     { toggleId: "drops-keep-pause-toggle", storageKey: "isDropsKeepPaused" },
     {
+      toggleId: "logpower-keep-pause-toggle",
+      storageKey: "isLogPowerKeepPaused",
+    },
+    {
       toggleId: "prediction-keep-pause-toggle",
       storageKey: "isPredictionKeepPaused",
     },

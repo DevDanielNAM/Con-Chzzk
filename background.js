@@ -2665,10 +2665,38 @@ async function checkFollowedChannels() {
   isChecking = true;
 
   try {
-    const response = await fetchWithRetry(FOLLOW_API_URL, {
-      maxRetryAfter: 120_000,
-    });
-    const data = await response.json();
+    let allFollowingList = [];
+    let page = 0;
+    let totalPage = 1; // 진입을 위해 1로 초기화
+    let isLoggedIn = false;
+
+    let data = null;
+    // 첫 번째 호출을 통해 로그인 상태 및 전체 페이지 수 확인
+    while (page < totalPage) {
+      // size는 안정적으로 100 정도로 설정
+      const url = `https://api.chzzk.naver.com/service/v1/channels/followings?size=100&page=${page}`;
+
+      const response = await fetchWithRetry(url, {
+        maxRetryAfter: 120_000,
+      });
+      data = await response.json();
+
+      if (data.code === 200) {
+        isLoggedIn = true;
+        const content = data.content;
+        if (content) {
+          totalPage = content.totalPage; // 전체 페이지 수 업데이트
+          if (content.followingList) {
+            allFollowingList.push(...content.followingList);
+          }
+        }
+        page++; // 다음 페이지로
+      } else {
+        // 200 OK가 아니면(로그아웃 등) 루프 중단
+        isLoggedIn = false;
+        break;
+      }
+    }
 
     const prevSession = (await chrome.storage.session.get("cachedLoginStatus"))
       .cachedLoginStatus;
@@ -2700,7 +2728,7 @@ async function checkFollowedChannels() {
       return;
     }
 
-    const followingList = data.content?.followingList || [];
+    const followingList = allFollowingList || [];
     if (followingList.length === 0) return;
 
     const notificationEnabledChannels = new Set();
@@ -7203,20 +7231,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         new Date().toISOString()
       );
 
-      const { isPaused = false, isLogPowerPaused = false } =
-        await chrome.storage.local.get(["isPaused", "isLogPowerPaused"]);
+      const {
+        isPaused = false,
+        isLogPowerPaused = false,
+        isLogPowerKeepPaused = false,
+      } = await chrome.storage.local.get([
+        "isPaused",
+        "isLogPowerPaused",
+        "isLogPowerKeepPaused",
+      ]);
 
-      // 히스토리 추가 + 알림
-      const entry = await pushLogPowerHistory({
-        channelId,
-        channelName,
-        channelImageUrl,
-        totalClaimed,
-        results,
-        claims,
-        claimedList,
-        baseTotalAmount,
-      });
+      // Keep Paused가 꺼져있을 때만 히스토리(팝업 목록)에 추가
+      let entry = null;
+      if (!isLogPowerKeepPaused) {
+        // 히스토리 추가 + 알림
+        entry = await pushLogPowerHistory({
+          channelId,
+          channelName,
+          channelImageUrl,
+          totalClaimed,
+          results,
+          claims,
+          claimedList,
+          baseTotalAmount,
+        });
+      }
 
       try {
         const nowTs = Date.now();
@@ -7245,7 +7284,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       } catch (_) {}
 
-      if (!isPaused && !isLogPowerPaused) {
+      if (!isPaused && !isLogPowerPaused && !isLogPowerKeepPaused && entry) {
         createLogPowerNotification(entry);
         playSoundFor("logpower");
       }
