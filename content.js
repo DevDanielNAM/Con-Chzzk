@@ -34,7 +34,7 @@ async function offAllNotifications() {
 
     if (!response.ok) {
       throw new Error(
-        `팔로우 목록을 가져오는데 실패했습니다: ${response.status}`
+        `팔로우 목록을 가져오는데 실패했습니다: ${response.status}`,
       );
     }
 
@@ -59,7 +59,7 @@ async function offAllNotifications() {
       console.log(
         `배치 ${Math.floor(i / BATCH_SIZE) + 1} 처리 중... (${i + 1} ~ ${
           i + batch.length
-        } / ${channelIds.length})`
+        } / ${channelIds.length})`,
       );
 
       const promises = batch.map((channelId) => {
@@ -75,7 +75,7 @@ async function offAllNotifications() {
 
       if (i + BATCH_SIZE < channelIds.length) {
         await new Promise((resolve) =>
-          setTimeout(resolve, DELAY_BETWEEN_BATCHES)
+          setTimeout(resolve, DELAY_BETWEEN_BATCHES),
         );
       }
     }
@@ -157,7 +157,7 @@ async function offAllNotifications() {
             claims, // 원본도 같이 보내주면 메시지 작성에 유용
             baseTotalAmount,
           },
-          () => void chrome.runtime.lastError // 응답이 없어도 콘솔 경고 방지
+          () => void chrome.runtime.lastError, // 응답이 없어도 콘솔 경고 방지
         );
       })();
 
@@ -191,7 +191,7 @@ async function offAllNotifications() {
 
   async function putLogPowerClaim(channelId, claimId) {
     await putWithRetry(
-      `${LOG_POWER_BASE}/${channelId}/log-power/claims/${claimId}`
+      `${LOG_POWER_BASE}/${channelId}/log-power/claims/${claimId}`,
     );
     return true;
   }
@@ -319,7 +319,7 @@ async function offAllNotifications() {
   // 채널 프로필 상단 액션 바에 북마크 버튼 주입
   function addBookmarkButtonToChannelProfilePage() {
     const actionWrap = document.querySelector(
-      "[class*='channel_profile_action__']"
+      "[class*='channel_profile_action__']",
     );
     if (!actionWrap || actionWrap.getAttribute(ATTR_MARK)) return;
 
@@ -349,10 +349,10 @@ async function offAllNotifications() {
       // 채널 이름/이미지 추출(여러 레이아웃 대비 다중 셀렉터)
       const nameEl =
         document.querySelector(
-          "[class*='channel_profile_name__'] [class*='name_text__']"
+          "[class*='channel_profile_name__'] [class*='name_text__']",
         ) ||
         document.querySelector(
-          "[class*='channel_header_name__'] [class*='name_text__']"
+          "[class*='channel_header_name__'] [class*='name_text__']",
         );
       const imageEl =
         document.querySelector("[class*='channel_profile_thumbnail__'] img") ||
@@ -427,12 +427,10 @@ async function offAllNotifications() {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
       const nameEl = q(
-        "[class*='video_information_name__'] [class*='name_text__']"
+        "[class*='video_information_name__'] [class*='name_text__']",
       );
       const channelName = nameEl ? nameEl.textContent.trim() : "";
-      const imgEl = q(
-        "[class*='video_information_thumbnail__'] img[class*='video_information_image__']"
-      );
+      const imgEl = q("[class*='video_information_thumbnail__'] img");
       const image = imgEl ? imgEl.src : "";
       btn.disabled = true;
 
@@ -487,8 +485,8 @@ async function offAllNotifications() {
     const channelId = liveA
       ? getChannelIdFromLiveHref(liveA.getAttribute("href"))
       : channelA
-      ? getChannelIdFromHref(channelA.getAttribute("href"))
-      : null;
+        ? getChannelIdFromHref(channelA.getAttribute("href"))
+        : null;
 
     if (!channelId) return;
 
@@ -518,9 +516,9 @@ async function offAllNotifications() {
       if (!channelId) return;
 
       const nameEl = card.querySelector(
-        "[class*='channel_item_channel__'] [class*='name_text__']"
+        "[class*='channel_item_channel__'] [class*='name_text__']",
       );
-      const imageEl = card.querySelector("img[class*='channel_item_image__']");
+      const imageEl = card.querySelector("img");
       const payload = {
         channelId,
         name: nameEl ? nameEl.textContent.trim() : "",
@@ -673,12 +671,12 @@ async function offAllNotifications() {
                 // URL 파싱 오류 등은 조용히 무시
               }
             },
-            true // 'true' (캡처링 단계)
+            true, // 'true' (캡처링 단계)
           );
         }
       },
       document,
-      30000
+      30000,
     );
   }
 
@@ -731,7 +729,7 @@ async function offAllNotifications() {
     selector,
     onFound,
     root = document,
-    timeout = 30000
+    timeout = 30000,
   ) {
     const el = root.querySelector(selector);
     if (el) {
@@ -803,7 +801,7 @@ async function offAllNotifications() {
           cardIO.unobserve(e.target);
         });
       },
-      { root: null, rootMargin: "200px 0px", threshold: 0.01 }
+      { root: null, rootMargin: "200px 0px", threshold: 0.01 },
     );
   }
 
@@ -818,7 +816,7 @@ async function offAllNotifications() {
           .querySelectorAll("li[class*='component_item__']")
           .forEach((li) => {
             const card = li.querySelector(
-              "[class*='channel_item_container__']"
+              "[class*='channel_item_container__']",
             );
             if (card && !card.__bookmarkObserved) {
               card.__bookmarkObserved = true;
@@ -958,7 +956,7 @@ function injectPopupStyles() {
 function showLogPowerBalancesPopup(limit = Infinity) {
   // 1. 이미 다른 팝업이 열려있으면 닫고 함수 종료
   const existPopup = document.querySelector(
-    ".chzzk_power_popup_layer, .live_chatting_popup_donation_layer__sQ9nX"
+    ".chzzk_power_popup_layer, .live_chatting_popup_donation_layer__sQ9nX",
   );
   if (existPopup) {
     if (existPopup.parentNode) {
@@ -984,7 +982,7 @@ function showLogPowerBalancesPopup(limit = Infinity) {
   // 3. 팝업 생성을 시도하는 내부 함수 (DOM이 준비될 때까지 재시도)
   (function tryCreatePopup() {
     const chatContainer = document.querySelector(
-      'aside[class^="live_chatting_container__"]'
+      'aside[class^="live_chatting_container__"]',
     );
     // 채팅창 UI가 아직 없으면 2초 후 재시도
     if (!chatContainer) {
@@ -1066,7 +1064,7 @@ function showLogPowerBalancesPopup(limit = Infinity) {
         const totalPower = sorted.reduce((sum, x) => sum + x.amount, 0);
         const totalLimitedDataLogPower = limitedData.reduce(
           (sum, x) => sum + x.amount,
-          0
+          0,
         );
 
         const table = document.createElement("div");
@@ -1102,8 +1100,8 @@ function showLogPowerBalancesPopup(limit = Infinity) {
                                 <img src="${
                                   x.channelImageUrl || defaultImg
                                 }" alt="${
-                          x.channelName
-                        }-logpower" style="opacity:${x.active ? "1" : "0.5"};">
+                                  x.channelName
+                                }-logpower" style="opacity:${x.active ? "1" : "0.5"};">
                                 <span style="color:${
                                   x.active ? "inherit" : "#666"
                                 };" title="${x.channelName}">
@@ -1120,7 +1118,7 @@ function showLogPowerBalancesPopup(limit = Infinity) {
                               x.active ? "inherit" : "#666"
                             };">${x.amount.toLocaleString()}</span>
                         </div>
-                    `
+                    `,
                       )
                       .join("")}
                 </div>`;
@@ -1197,7 +1195,7 @@ function showLogPowerBalancesPopup(limit = Infinity) {
     } catch (error) {
       if (error.message.includes("Extension context invalidated")) {
         console.log(
-          "확장 프로그램이 업데이트되어 이전 content script의 활동을 중지합니다. 페이지를 새로고침하세요."
+          "확장 프로그램이 업데이트되어 이전 content script의 활동을 중지합니다. 페이지를 새로고침하세요.",
         );
       }
       return null;
@@ -1257,7 +1255,7 @@ function showLogPowerBalancesPopup(limit = Infinity) {
               // 통나무 파워 페이지로 이동
               window.open(
                 "https://game.naver.com/profile#channel_power",
-                "_blank"
+                "_blank",
               );
               break;
             case "none":
@@ -1453,7 +1451,7 @@ function showLogPowerBalancesPopup(limit = Infinity) {
       try {
         chrome.runtime.sendMessage(
           { type: "LOG_POWER_CHECK_NOW", channelId },
-          () => void chrome.runtime.lastError // 응답 에러 무시
+          () => void chrome.runtime.lastError, // 응답 에러 무시
         );
       } catch (e) {
         // 확장 업데이트 직후 고아 컨텍스트일 때 발생
@@ -1490,7 +1488,7 @@ function showLogPowerBalancesPopup(limit = Infinity) {
     powerMo = new MutationObserver(() => {
       if (document.hidden) return;
       const btn = document.querySelector(
-        "[class*=live_chatting_power_button__]"
+        "[class*=live_chatting_power_button__]",
       );
       if (btn) clickPowerButtonIfExists();
     });
@@ -1528,7 +1526,7 @@ async function snapshotDailyOpeningOnce() {
   // balances 호출
   const res = await fetch(
     "https://api.chzzk.naver.com/service/v1/log-power/balances",
-    { credentials: "include" }
+    { credentials: "include" },
   );
   const json = await res.json();
   const arr = json?.content?.data || [];
@@ -1543,7 +1541,7 @@ async function snapshotDailyOpeningOnce() {
         imageUrl: x.channelImageUrl || "icon_128.png",
         verifiedMark: !!x.verifiedMark,
       },
-    ])
+    ]),
   );
 
   await chrome.storage.local.set({
@@ -1574,7 +1572,7 @@ if (document.readyState === "loading") {
     () => {
       ensureTodayOpeningSnapshot();
     },
-    { once: true }
+    { once: true },
   );
 }
 
