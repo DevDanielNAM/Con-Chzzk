@@ -76,7 +76,7 @@
 ## 📝 업데이트 내역 (Changelog)
 
 <details>
-<summary><b>버전 기록 펼쳐보기 (1.0.1 ~ 1.7.2)</b></summary>
+<summary><b>버전 기록 펼쳐보기 (1.0.1 ~ 1.7.3)</b></summary>
 <br>
 
 **[1.7.3 업데이트 내용]**
