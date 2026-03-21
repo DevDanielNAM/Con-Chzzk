@@ -1,0 +1,74 @@
+name: Update Whale Store Users
+
+on:
+  schedule:
+    # UTC 기준 3, 9, 15, 21시 30분에 실행 (한국 시간 00시부터 6시간 간격)
+    - cron: "30 3,9,15,21 * * *"
+  workflow_dispatch: # 수동 실행 버튼 활성화
+
+jobs:
+  update-gist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Data and Update Gist (Python)
+        env:
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          python - <<'EOF'
+          import urllib.request
+          import json
+          import os
+
+          # 1. 네이버 웨일 API 호출
+          url = "https://store.whale.naver.com/ajax/extensions/kinlgaobkiodpcmgpdlmmnhdcohcchho?hl=ko-KR"
+          req = urllib.request.Request(url, headers={
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Whale/3.25.232.19 Safari/537.36",
+              "Accept": "application/json, text/plain, */*",
+              "X-Requested-With": "XMLHttpRequest",
+              "Referer": "https://store.whale.naver.com/detail/kinlgaobkiodpcmgpdlmmnhdcohcchho"
+          })
+
+          users = 0
+          try:
+              response = urllib.request.urlopen(req).read().decode("utf-8")
+              # 네이버 보안 텍스트 제거
+              clean_json = response[response.find("{"):]
+              data = json.loads(clean_json)
+              
+              installed = data.get("installedCount", 0)
+              uninstalled = data.get("uninstalledCount", 0)
+              users = installed - uninstalled
+              print(f"✅ 성공적으로 데이터를 가져왔습니다. 현재 이용자 수: {users}")
+          except Exception as e:
+              print(f"⚠️ 네이버 API 접근 실패: {e}")
+              users = 0
+
+          # 2. Gist 업데이트
+          gist_id = os.environ.get("GIST_ID")
+          gist_token = os.environ.get("GIST_TOKEN")
+          gist_url = f"https://api.github.com/gists/{gist_id}"
+
+          payload = {
+              "files": {
+                  "whale-users.json": {
+                      "content": json.dumps({
+                          "schemaVersion": 1,
+                          "label": "Whale Users",
+                          "message": str(users),
+                          "color": "00C73C"
+                      })
+                  }
+              }
+          }
+
+          gist_req = urllib.request.Request(gist_url, method="PATCH", headers={
+              "Accept": "application/vnd.github+json",
+              "Authorization": f"Bearer {gist_token}",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "Content-Type": "application/json"
+          }, data=json.dumps(payload).encode("utf-8"))
+
+          urllib.request.urlopen(gist_req)
+          print("✅ Gist 뱃지 데이터 업데이트 완료!")
+          EOF
