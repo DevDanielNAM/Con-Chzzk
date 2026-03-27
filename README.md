@@ -11,7 +11,7 @@
 
 ![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/fndooehkehemlimfeemnfpmnkdjfpcjf?style=for-the-badge&logo=googlechrome&logoColor=white&color=4285F4&label=Chrome%20Users)
 [![Edge Add-on Users](https://img.shields.io/badge/dynamic/json?style=for-the-badge&logo=microsoftedge&label=Edge%20Users&query=%24.activeInstallCount&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2Flnimldepchpdgbmecajkhpakjmlfcoja)](https://microsoftedge.microsoft.com/addons/detail/콘치즈conchzzk-치지직-브라우저/lnimldepchpdgbmecajkhpakjmlfcoja)
-[![Naver Whale Users](https://img.shields.io/endpoint?style=for-the-badge&logo=naver&logoColor=white&url=https%3A%2F%2Fgist.githubusercontent.com%2Flirpa62%2F6d270190a0e1692961df16cde21eb691%2Fraw%2Fwhale-users.json)](https://store.whale.naver.com/detail/kinlgaobkiodpcmgpdlmmnhdcohcchho)
+[![Naver Whale Users](https://img.shields.io/endpoint?style=for-the-badge&logo=naver&logoColor=white&url=https%3A%2F%2Fgist.githubusercontent.com%2Flirpa62%2F6d270190a0e1692961df16cde21eb691%2Fraw%2FCon-Chzzk-Whale-Users.json)](https://store.whale.naver.com/detail/kinlgaobkiodpcmgpdlmmnhdcohcchho)
 ![Mozilla Add-on Users](https://img.shields.io/amo/users/%EC%BD%98%EC%B9%98%EC%A6%88-con-chzzk-%EC%B9%98%EC%A7%80%EC%A7%81-%EB%B8%8C%EB%9D%BC%EC%9A%B0%EC%A0%80-%EC%95%8C%EB%A6%BC?style=for-the-badge&logo=firefoxbrowser&logoColor=white&color=FF7139&label=Firefox%20Users)
 
 </div>

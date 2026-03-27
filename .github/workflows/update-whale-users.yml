@@ -51,7 +51,7 @@ jobs:
 
           payload = {
               "files": {
-                  "whale-users.json": {
+                  "Con-Chzzk-Whale-Users.json": {
                       "content": json.dumps({
                           "schemaVersion": 1,
                           "label": "Whale Users",
